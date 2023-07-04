@@ -3,6 +3,104 @@
 #include <math.h>
 
 /******************************************************************************/
+gac_t* gac_create( gac_filter_parameter_t* parameter )
+{
+    gac_t* h = malloc( sizeof( gac_t ) );
+    if( !gac_init( h, parameter ) )
+    {
+        return NULL;
+    }
+    h->is_heap = true;
+
+    return h;
+}
+
+/******************************************************************************/
+void gac_destroy( gac_t* h )
+{
+    if( h == NULL )
+    {
+        return;
+    }
+
+    gac_queue_destroy( &h->samples );
+    gac_fixation_filter_destroy( &h->fixation );
+    gac_saccade_filter_destroy( &h->saccade );
+    gac_filter_gap_destroy( &h->gap );
+    gac_filter_noise_destroy( &h->noise );
+
+    if( h->is_heap )
+    {
+        free( h );
+    }
+}
+
+/******************************************************************************/
+bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
+{
+    if( h == NULL )
+    {
+        return false;
+    }
+
+    h->is_heap = false;
+    h->parameter.fixation.dispersion_threshold = 0.5;
+    h->parameter.fixation.duration_threshold = 100;
+    h->parameter.saccade.velocity_threshold = 20;
+    h->parameter.noise.mid_idx = 1;
+    h->parameter.noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
+    h->parameter.gap.max_gap_length = 50;
+    h->parameter.gap.sample_period = 16.67;
+    if( parameter != NULL )
+    {
+        h->parameter.fixation.dispersion_threshold =
+            parameter->fixation.dispersion_threshold;
+        h->parameter.fixation.duration_threshold =
+            parameter->fixation.duration_threshold;
+        h->parameter.saccade.velocity_threshold =
+            parameter->saccade.velocity_threshold;
+        h->parameter.noise.mid_idx = parameter->noise.mid_idx;
+        h->parameter.noise.type = parameter->noise.type;
+        h->parameter.gap.max_gap_length = parameter->gap.max_gap_length;
+        h->parameter.gap.sample_period = parameter->gap.sample_period;
+    }
+
+    gac_fixation_filter_init( &h->fixation,
+            h->parameter.fixation.dispersion_threshold,
+            h->parameter.fixation.duration_threshold );
+    gac_saccade_filter_init( &h->saccade,
+            h->parameter.saccade.velocity_threshold );
+    gac_filter_noise_init( &h->noise, h->parameter.noise.type,
+            h->parameter.noise.mid_idx );
+    gac_filter_gap_init( &h->gap, h->parameter.gap.max_gap_length,
+            h->parameter.gap.sample_period );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter )
+{
+    if( h == NULL || parameter == NULL )
+    {
+        return false;
+    }
+
+    parameter->fixation.dispersion_threshold =
+        h->parameter.fixation.dispersion_threshold;
+    parameter->fixation.duration_threshold =
+        h->parameter.fixation.duration_threshold;
+    parameter->saccade.velocity_threshold =
+        h->parameter.saccade.velocity_threshold;
+    parameter->noise.mid_idx = h->parameter.noise.mid_idx;
+    parameter->noise.type = h->parameter.noise.type;
+    parameter->gap.max_gap_length = h->parameter.gap.max_gap_length;
+    parameter->gap.sample_period = h->parameter.gap.sample_period;
+
+    return true;
+}
+
+/******************************************************************************/
 uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
         gac_sample_t* sample )
 {
@@ -43,6 +141,51 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
 }
 
 /******************************************************************************/
+gac_filter_gap_t* gac_filter_gap_create( double max_gap_length,
+        double sample_period )
+{
+    gac_filter_gap_t* filter = malloc( sizeof( gac_filter_gap_t ) );
+    if( !gac_filter_gap_init( filter, max_gap_length, sample_period ) )
+    {
+        return NULL;
+    }
+    filter->is_heap = true;
+
+    return filter;
+}
+
+/******************************************************************************/
+void gac_filter_gap_destroy( gac_filter_gap_t* filter )
+{
+    if( filter == NULL )
+    {
+        return;
+    }
+
+    if( filter->is_heap )
+    {
+        free( filter );
+    }
+}
+
+/******************************************************************************/
+bool gac_filter_gap_init( gac_filter_gap_t* filter, double max_gap_length,
+        double sample_period )
+{
+    if( filter == NULL )
+    {
+        return false;
+    }
+
+    filter->is_heap = false;
+    filter->is_enabled = max_gap_length == 0 ? false : true;
+    filter->max_gap_length = max_gap_length;
+    filter->sample_period = sample_period;
+
+    return true;
+}
+
+/******************************************************************************/
 gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
         gac_sample_t* sample )
 {
@@ -71,6 +214,53 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
     }
 
     return sample;
+}
+
+/******************************************************************************/
+gac_filter_noise_t* gac_filter_noise_create( gac_filter_noise_type_t type,
+        uint32_t mid_idx )
+{
+    gac_filter_noise_t* filter = malloc( sizeof( gac_filter_noise_t ) );
+    if( !gac_filter_noise_init( filter, type, mid_idx ) )
+    {
+        return NULL;
+    }
+    filter->is_heap = true;
+
+    return filter;
+}
+
+/******************************************************************************/
+void gac_filter_noise_destroy( gac_filter_noise_t* filter )
+{
+    if( filter == NULL )
+    {
+        return;
+    }
+
+    gac_queue_destroy( &filter->window );
+    if( filter->is_heap )
+    {
+        free( filter );
+    }
+}
+
+/******************************************************************************/
+bool gac_filter_noise_init( gac_filter_noise_t* filter,
+        gac_filter_noise_type_t type, uint32_t mid_idx )
+{
+    if( filter == NULL )
+    {
+        return false;
+    }
+
+    filter->is_heap = false;
+    filter->is_enabled = mid_idx == 0 ? false : true;
+    filter->type = type;
+    filter->mid = mid_idx;
+    gac_queue_init( &filter->window, mid_idx * 2 + 1 );
+
+    return true;
 }
 
 /******************************************************************************/
@@ -104,6 +294,7 @@ gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
     {
         return NULL;
     }
+    fixation->is_heap = true;
 
     return fixation;
 }
@@ -182,29 +373,45 @@ bool gac_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 }
 
 /******************************************************************************/
-gac_filter_fixation_t* gac_fixation_filter_create( gac_queue_t* samples,
+gac_filter_fixation_t* gac_fixation_filter_create(
         float dispersion_threshold, double duration_threshold )
 {
     gac_filter_fixation_t* filter = malloc( sizeof( gac_filter_fixation_t ) );
-    if( !gac_fixation_filter_init( filter, samples, dispersion_threshold,
+    if( !gac_fixation_filter_init( filter, dispersion_threshold,
                 duration_threshold ) )
     {
         return NULL;
     }
+    filter->is_heap = true;
 
     return filter;
 }
 
 /******************************************************************************/
+void gac_fixation_filter_destroy( gac_filter_fixation_t* filter )
+{
+    if( filter == NULL )
+    {
+        return;
+    }
+
+    if( filter->is_heap )
+    {
+        free( filter );
+    }
+}
+
+/******************************************************************************/
 bool gac_fixation_filter_init( gac_filter_fixation_t* filter,
-        gac_queue_t* samples, float dispersion_threshold,
+        float dispersion_threshold,
         double duration_threshold )
 {
-    if( filter == NULL || samples == NULL )
+    if( filter == NULL )
     {
         return false;
     }
 
+    filter->is_heap = false;
     filter->duration = 0;
     glm_vec3_zero( filter->point );
     filter->is_collecting = false;
@@ -225,6 +432,7 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec3* point,
         return false;
     }
 
+    fixation->is_heap = false;
     fixation->duration = duration;
     glm_vec3_copy( *point, fixation->point );
     fixation->timestamp = timestamp;
@@ -246,8 +454,36 @@ gac_queue_t* gac_queue_create( uint32_t length )
     {
         return NULL;
     }
+    queue->is_heap = true;
 
     return queue;
+}
+
+/******************************************************************************/
+void gac_queue_destroy( gac_queue_t* queue )
+{
+    gac_queue_item_t* item;
+
+    if( queue == NULL )
+    {
+        return;
+    }
+
+    while( queue->tail != NULL )
+    {
+        item = queue->tail;
+        queue->tail = queue->tail->next;
+        if( item->data != NULL )
+        {
+            free( item->data );
+        }
+        free( item );
+    }
+
+    if( queue->is_heap )
+    {
+        free( queue );
+    }
 }
 
 /******************************************************************************/
@@ -302,6 +538,7 @@ bool gac_queue_init( gac_queue_t* queue, uint32_t length )
         return false;
     }
 
+    queue->is_heap = false;
     queue->count = 0;
     queue->length = 0;
     queue->head = NULL;
@@ -379,6 +616,7 @@ gac_saccade_t* gac_saccade_create( vec3* point_start, vec3* point_dest,
     {
         return NULL;
     }
+    saccade->is_heap = true;
 
     return saccade;
 }
@@ -455,27 +693,42 @@ bool gac_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
-gac_filter_saccade_t* gac_saccade_filter_create( gac_queue_t* samples,
-        float velocity_threshold )
+gac_filter_saccade_t* gac_saccade_filter_create( float velocity_threshold )
 {
     gac_filter_saccade_t* filter = malloc( sizeof( gac_filter_saccade_t ) );
-    if( !gac_saccade_filter_init( filter, samples, velocity_threshold ) )
+    if( !gac_saccade_filter_init( filter, velocity_threshold ) )
     {
         return NULL;
     }
+    filter->is_heap = true;
 
     return filter;
 }
 
 /******************************************************************************/
-bool gac_saccade_filter_init( gac_filter_saccade_t* filter, gac_queue_t* samples,
+void gac_saccade_filter_destroy( gac_filter_saccade_t* filter )
+{
+    if( filter == NULL )
+    {
+        return;
+    }
+
+    if( filter->is_heap )
+    {
+        free( filter );
+    }
+}
+
+/******************************************************************************/
+bool gac_saccade_filter_init( gac_filter_saccade_t* filter,
         float velocity_threshold )
 {
-    if( filter == NULL || samples == NULL )
+    if( filter == NULL )
     {
         return false;
     }
 
+    filter->is_heap = false;
     filter->is_collecting = false;
     filter->velocity_threshold = velocity_threshold;
     filter->duration = 0;
@@ -493,6 +746,7 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
         return false;
     }
 
+    saccade->is_heap = false;
     saccade->duration = duration;
     glm_vec3_copy( *point_start, saccade->point_start );
     glm_vec3_copy( *point_dest, saccade->point_dest );
@@ -509,6 +763,7 @@ gac_sample_t* gac_sample_create( vec3* origin, vec3* point, double timestamp )
     {
         return NULL;
     }
+    sample->is_heap = true;
 
     return sample;
 }
@@ -522,6 +777,7 @@ bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
         return false;
     }
 
+    sample->is_heap = false;
     glm_vec3_copy( *origin, sample->origin );
     glm_vec3_copy( *point, sample->point );
     sample->timestamp = timestamp;

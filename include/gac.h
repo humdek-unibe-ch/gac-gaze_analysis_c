@@ -11,6 +11,7 @@ typedef struct gac_filter_fixation_s gac_filter_fixation_t;
 typedef struct gac_filter_gap_s gac_filter_gap_t;
 typedef struct gac_filter_noise_s gac_filter_noise_t;
 typedef struct gac_filter_saccade_s gac_filter_saccade_t;
+typedef struct gac_filter_parameter_s gac_filter_parameter_t;
 typedef struct gac_fixation_s gac_fixation_t;
 typedef struct gac_saccade_s gac_saccade_t;
 typedef struct gac_sample_s gac_sample_t;
@@ -35,6 +36,7 @@ enum gac_filter_noise_type_e
  */
 struct gac_sample_s
 {
+    bool is_heap;
     /** The gaze point. */
     vec3 point;
     /** The gaze origin. */
@@ -48,6 +50,7 @@ struct gac_sample_s
  */
 struct gac_fixation_s
 {
+    bool is_heap;
     /** The fixation gaze point */
     vec3 point;
     /** The fixation duration in milliseconds */
@@ -57,10 +60,27 @@ struct gac_fixation_s
 };
 
 /**
+ * A saccade sample.
+ */
+struct gac_saccade_s
+{
+    bool is_heap;
+    /** The start point of the saccade */
+    vec3 point_start;
+    /** The end point of the saccade */
+    vec3 point_dest;
+    /** The sacacde duration */
+    double duration;
+    /** The timestamp of the first saccade point */
+    double timestamp;
+};
+
+/**
  * A generic queue structure.
  */
 struct gac_queue_s
 {
+    bool is_heap;
     /** A pointer to the head of the queue to read from. */
     gac_queue_item_t* tail;
     /** A pointer to the tail to write to */
@@ -89,6 +109,7 @@ struct gac_queue_item_s
  */
 struct gac_filter_fixation_s
 {
+    bool is_heap;
     /** The pre-computed dispersion threshold at unit distance */
     double normalized_dispersion_threshold;
     /** The duration threashold */
@@ -108,6 +129,7 @@ struct gac_filter_fixation_s
  */
 struct gac_filter_saccade_s
 {
+    bool is_heap;
     /** The velocity threshold */
     float velocity_threshold;
     /** A flag indicating whether a saccade is ongoing */
@@ -123,6 +145,7 @@ struct gac_filter_saccade_s
  */
 struct gac_filter_noise_s
 {
+    bool is_heap;
     /** A flag indicating whether the noise filter is active or not */
     bool is_enabled;
     /** The noise filter window */
@@ -134,31 +157,58 @@ struct gac_filter_noise_s
 };
 
 /**
- * A saccade sample.
- */
-struct gac_saccade_s
-{
-    /** The start point of the saccade */
-    vec3 point_start;
-    /** The end point of the saccade */
-    vec3 point_dest;
-    /** The sacacde duration */
-    double duration;
-    /** The timestamp of the first saccade point */
-    double timestamp;
-};
-
-/**
  * The gap fill-in filter structure.
  */
 struct gac_filter_gap_s
 {
+    bool is_heap;
     /** A flag indicating whether the filter is active or not */
     bool is_enabled;
     /** The maximal allowed gap length to be filled-in */
-    uint32_t max_gap_length;
+    double max_gap_length;
     /** The sample period to compute the number of required fill-in samples */
-    uint32_t sample_period;
+    double sample_period;
+};
+
+/**
+ * The filter parameter structure to initialise the gaze analysis handeler.
+ */
+struct gac_filter_parameter_s
+{
+    bool is_heap;
+    /** The gap filter parameter */
+    struct {
+        /**
+         * The maximal allowed gap length to be filled-in. Set to zero to
+         * disable gap fill-in filter.
+         */
+        double max_gap_length;
+        /** The sample period to compute the number of required fill-in samples */
+        double sample_period;
+    } gap;
+    /** Noise filter parameter */
+    struct {
+        /** The noise filter type. */
+        gac_filter_noise_type_t type;
+        /**
+         * The mid index of the window. This is used to compute the length of
+         * the window: window_length = mid_idx * 2 + 1.
+         * Set to zero to disable noise filtering.
+         */
+        uint32_t mid_idx;
+    } noise;
+    /** Saccade detection. */
+    struct {
+        /** The velocity threshold in degrees per seconds. */
+        float velocity_threshold;
+    } saccade;
+    /** Fixation detection. */
+    struct {
+        /** The duration threshold in milliseconds. */
+        double duration_threshold;
+        /** The dispersion threshold in degrees. */
+        float dispersion_threshold;
+    } fixation;
 };
 
 /**
@@ -166,6 +216,7 @@ struct gac_filter_gap_s
  */
 struct gac_s
 {
+    bool is_heap;
     /** The sample queue */
     gac_queue_t samples;
     /** The fixation filter structure */
@@ -176,7 +227,64 @@ struct gac_s
     gac_filter_saccade_t saccade;
     /** The noise filter structure */
     gac_filter_noise_t noise;
+    /** The parameters passed during configuration */
+    gac_filter_parameter_t parameter;
 };
+
+// HANDLER /////////////////////////////////////////////////////////////////////
+
+/**
+ * Allocate the gaze analysis structure on the heap. This must be freed.
+ * If no parameter structure is provided default values are used.
+ * Refer to gac_init() for more information.
+ *
+ * @param parameter
+ *  An optional filter parameter structure.
+ * @return
+ *  A pointer to the allocated structure or NULL on failure.
+ */
+gac_t* gac_create( gac_filter_parameter_t* parameter );
+
+/**
+ * Destroy the gaze analysis handler.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ */
+void gac_destroy( gac_t* h );
+
+/**
+ * Initialise the gaze analysis structure.
+ *
+ * If no parameter structure is provided the following default values are set:
+ *  - fixation.dispersion_threshold = 0.5;
+ *  - fixation.duration_threshold = 100;
+ *  - saccade.velocity_threshold = 20;
+ *  - noise.mid_idx = 1;
+ *  - noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
+ *  - gap.max_gap_length = 50;
+ *  - gap.sample_period = 16.67;
+ *
+ * @param h
+ *  A pointer to the gaze analysis structure to initialise.
+ * @param parameter
+ *  An optional filter parameter structure.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_init( gac_t* h, gac_filter_parameter_t* parameter );
+
+/**
+ * Get the filter parameters.
+ *
+ * @param h
+ *  A pointer to the gaze analysis structure to initialise.
+ * @param parameter
+ *  A location where the filter parameter values can be stored.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter );
 
 // FILTER //////////////////////////////////////////////////////////////////////
 
@@ -199,6 +307,42 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
         gac_sample_t* sample );
 
 /**
+ * Allocate the filter gap structure on the heap. this needs to be freed.
+ *
+ * @param max_gap_length
+ *  The maximal gap length in milliseconds to fil-in. Larger gaps are ignored.
+ * @param sample_period
+ *  The expected average sample period in milliseconds (1000 / sample_rate).
+ * @return
+ *  A pointer to the allocated filter gap structure.
+ */
+gac_filter_gap_t* gac_filter_gap_create( double max_gap_length,
+        double sample_period );
+
+/**
+ * Destroy the gap filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to destroy.
+ */
+void gac_filter_gap_destroy( gac_filter_gap_t* filter );
+
+/**
+ * Initialise a filter gap structure.
+ *
+ * @param filter
+ *  A pointer to the struct to be initialised.
+ * @param max_gap_length
+ *  The maximal gap length in milliseconds to fil-in. Larger gaps are ignored.
+ * @param sample_period
+ *  The expected average sample period in milliseconds (1000 / sample_rate).
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_filter_gap_init( gac_filter_gap_t* filter, double max_gap_length,
+        double sample_period );
+
+/**
  * A noise filter. The filter consecutively collects samples into a window and
  * returns a filtered value when the window is full, otherwise the passed
  * sample is returned. The filter maintains its won sample window.
@@ -213,6 +357,44 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
  */
 gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
         gac_sample_t* sample );
+
+/**
+ * Allocate the noise filter structure. This needs to be freed.
+ *
+ * @param type
+ *  The noise filter type.
+ * @param mid_idx
+ *  The mid index of the window. This is used to compute the length of the
+ *  window: window_length = mid_idx * 2 + 1.
+ * @return
+ *  A pointer to the allocated structure or NULL on failure.
+ */
+gac_filter_noise_t* gac_filter_noise_create( gac_filter_noise_type_t type,
+        uint32_t mid_idx );
+
+/**
+ * Destroy the noise filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to destroy.
+ */
+void gac_filter_noise_destroy( gac_filter_noise_t* filter );
+
+/**
+ * Initialises a noise filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to initialise.
+ * @param type
+ *  The noise filter type.
+ * @param mid_idx
+ *  The mid index of the window. This is used to compute the length of the
+ *  window: window_length = mid_idx * 2 + 1.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_filter_noise_init( gac_filter_noise_t* filter,
+        gac_filter_noise_type_t type, uint32_t mid_idx );
 
 /**
  * A moving average noise filter. It computes the average sample point and
@@ -264,8 +446,6 @@ bool gac_fixation_filter( gac_t* h, gac_fixation_t* fixation );
  * Allocate a new fixation filter structure on the heap. This structure must be
  * freed.
  *
- * @param samples
- *  A pointer to the data sample queue.
  * @param dispersion_threshold
  *  The dispersion thresholad in degrees.
  * @apram duratio_threshold
@@ -273,16 +453,22 @@ bool gac_fixation_filter( gac_t* h, gac_fixation_t* fixation );
  * @return
  *  The allocated fixation filter structure or NULL on failure.
  */
-gac_filter_fixation_t* gac_fixation_filter_create( gac_queue_t* samples,
+gac_filter_fixation_t* gac_fixation_filter_create(
         float dispersion_threshold, double duration_threshold );
+
+/**
+ * Destroy the fixation filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to destroy.
+ */
+void gac_fixation_filter_destroy( gac_filter_fixation_t* filter );
 
 /**
  * Initialise a fixation filter structure.
  *
  * @param filter
  *  The filter structure to initialise.
- * @param samples
- *  A pointer to the data sample queue.
  * @param dispersion_threshold
  *  The dispersion thresholad in degrees.
  * @apram duratio_threshold
@@ -291,8 +477,7 @@ gac_filter_fixation_t* gac_fixation_filter_create( gac_queue_t* samples,
  *  True on success, false on failure.
  */
 bool gac_fixation_filter_init( gac_filter_fixation_t* filter,
-        gac_queue_t* samples, float dispersion_threshold,
-        double duration_threshold );
+        float dispersion_threshold, double duration_threshold );
 
 /**
  * Initialise a fixation structure.
@@ -335,6 +520,14 @@ float gac_fixation_normalised_dispersion_threshold( float angle );
  *  The allocated queue structure.
  */
 gac_queue_t* gac_queue_create( uint32_t length );
+
+/**
+ * Destroy a queue, all ist items and all data inside the items.
+ *
+ * @param queue
+ *  A pointer to the queue to destroy
+ */
+void gac_queue_destroy( gac_queue_t* queue );
 
 /**
  * Grow the queue.
@@ -424,29 +617,32 @@ bool gac_saccade_filter( gac_t* h, gac_saccade_t* saccade );
 /**
  * Allocate a new saccade filter structure on the heap. This needs to be freed.
  *
- * @param samples
- *  A pointer to the sample queue.
  * @param velocity_thresold
  *  The velocity threshold in degrees per second.
  * @return
  *  A pointer to the allocated filter structure or NUll on failure.
  */
-gac_filter_saccade_t* gac_saccade_filter_create( gac_queue_t* samples,
-        float velocity_threshold );
+gac_filter_saccade_t* gac_saccade_filter_create( float velocity_threshold );
+
+/**
+ * Destroy the saccade filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to destroy.
+ */
+void gac_saccade_filter_destroy( gac_filter_saccade_t* filter );
 
 /**
  * Initialise a saccade filter structure.
  *
  * @param filter
  *  A pointer to the filter structure to initialise.
- * @param samples
- *  A pointer to the sample queue.
  * @param velocity_thresold
  *  The velocity threshold in degrees per second.
  * @return
  *  True on success, false on failure.
  */
-bool gac_saccade_filter_init( gac_filter_saccade_t* filter, gac_queue_t* samples,
+bool gac_saccade_filter_init( gac_filter_saccade_t* filter,
         float velocity_threshold );
 
 /**
