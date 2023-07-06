@@ -526,8 +526,12 @@ gac_queue_t* gac_queue_create( uint32_t length );
  *
  * @param queue
  *  A pointer to the queue to destroy
+ * @param cb
+ *  An optional callback function to perform operations on each data item.
+ *  This cann be used to free allocated data. The function is only called
+ *  If the data item is not null.
  */
-void gac_queue_destroy( gac_queue_t* queue );
+void gac_queue_destroy( gac_queue_t* queue, void ( *cb )( void* ) );
 
 /**
  * Grow the queue.

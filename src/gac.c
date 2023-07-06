@@ -23,7 +23,7 @@ void gac_destroy( gac_t* h )
         return;
     }
 
-    gac_queue_destroy( &h->samples );
+    gac_queue_destroy( &h->samples, free );
     gac_fixation_filter_destroy( &h->fixation );
     gac_saccade_filter_destroy( &h->saccade );
     gac_filter_gap_destroy( &h->gap );
@@ -238,7 +238,7 @@ void gac_filter_noise_destroy( gac_filter_noise_t* filter )
         return;
     }
 
-    gac_queue_destroy( &filter->window );
+    gac_queue_destroy( &filter->window, free );
     if( filter->is_heap )
     {
         free( filter );
@@ -460,8 +460,9 @@ gac_queue_t* gac_queue_create( uint32_t length )
 }
 
 /******************************************************************************/
-void gac_queue_destroy( gac_queue_t* queue )
+void gac_queue_destroy( gac_queue_t* queue, void ( *cb )( void* ) )
 {
+    gac_queue_item_t* head = queue->head;
     gac_queue_item_t* item;
 
     if( queue == NULL )
@@ -469,13 +470,13 @@ void gac_queue_destroy( gac_queue_t* queue )
         return;
     }
 
-    while( queue->tail != NULL )
+    while( head != NULL )
     {
-        item = queue->tail;
-        queue->tail = queue->tail->next;
-        if( item->data != NULL )
+        item = head;
+        head = head->prev;
+        if( item->data != NULL && cb != NULL )
         {
-            free( item->data );
+            cb( item->data );
         }
         free( item );
     }
@@ -491,34 +492,27 @@ bool gac_queue_grow( gac_queue_t* queue, uint32_t count )
 {
     uint32_t i;
     gac_queue_item_t* item = NULL;
-    gac_queue_item_t* last_item;
 
     if( queue == NULL )
     {
         return false;
     }
 
-    last_item = queue->tail;
-    while( last_item != NULL )
-    {
-        last_item = last_item->prev;
-    }
-
     for( i = 0; i < count; i++ )
     {
-        last_item = item;
         item = malloc( sizeof( gac_queue_item_t ) );
         item->data = NULL;
         item->prev = NULL;
         item->next = NULL;
-        if( last_item != NULL )
-        {
-            item->next = last_item;
-            last_item->prev = item;
-        }
         if( queue->tail == NULL )
         {
             queue->tail = item;
+        }
+        else
+        {
+            item->next = queue->tail;
+            item->prev = queue->tail->prev;
+            queue->tail->prev = item;
         }
         if( queue->head == NULL )
         {
@@ -550,26 +544,40 @@ bool gac_queue_init( gac_queue_t* queue, uint32_t length )
 /******************************************************************************/
 bool gac_queue_pop( gac_queue_t* queue, void** data, bool free_data )
 {
+    gac_queue_item_t* free_item;
+
     if( queue->count == 0 )
     {
         return false;
     }
 
+    free_item = queue->head;
+
     if( free_data == true )
     {
-        free( queue->head->data );
-        queue->head->data = NULL;
+        free( free_item->data );
+        free_item->data = NULL;
     }
     if( data != NULL )
     {
-        *data = queue->head->data;
+        *data = free_item->data;
     }
 
-    queue->head->data = NULL;
-    queue->head->next = queue->tail;
-    queue->tail->prev = queue->head;
-    queue->head = queue->head->prev;
-    queue->head->prev = NULL;
+    free_item->data = NULL;
+    if( queue->length == 1 )
+    {
+        queue->head = free_item;
+        queue->tail = free_item;
+        free_item->next = NULL;
+        free_item->prev = NULL;
+    }
+    else
+    {
+        queue->head = queue->head->prev;
+        free_item->next = queue->tail;
+        free_item->prev = queue->tail->prev;
+        queue->tail->prev = free_item;
+    }
     queue->head->next = NULL;
     queue->count--;
 

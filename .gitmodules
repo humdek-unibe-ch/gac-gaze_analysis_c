@@ -1,3 +1,6 @@
 [submodule "cglm"]
 	path = cglm
 	url = https://github.com/recp/cglm.git
+[submodule "test/minunit"]
+	path = test/minunit
+	url = https://github.com/siu/minunit.git
