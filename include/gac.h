@@ -89,6 +89,8 @@ struct gac_queue_s
     uint32_t count;
     /** The number of total available spaces */
     uint32_t length;
+    /** The handler to remove data items */
+    void ( *rm )( void* );
 };
 
 /**
@@ -526,12 +528,8 @@ gac_queue_t* gac_queue_create( uint32_t length );
  *
  * @param queue
  *  A pointer to the queue to destroy
- * @param cb
- *  An optional callback function to perform operations on each data item.
- *  This cann be used to free allocated data. The function is only called
- *  If the data item is not null.
  */
-void gac_queue_destroy( gac_queue_t* queue, void ( *cb )( void* ) );
+void gac_queue_destroy( gac_queue_t* queue );
 
 /**
  * Grow the queue.
@@ -559,18 +557,16 @@ bool gac_queue_init( gac_queue_t* queue, uint32_t length );
 
 /**
  * Remove a the data from the head of the queue and link the the now free space
- * to the tail of teh queue.
+ * to the tail of the queue.
  *
  * @param queue
  *  A pointer to the queue.
  * @param data
  *  An optional location to store the popped data.
- * @param free_data
- *  If set to true the popped data will be freed.
  * @return
  *  True on success, false on failure.
  */
-bool gac_queue_pop( gac_queue_t* queue, void** data, bool free_data );
+bool gac_queue_pop( gac_queue_t* queue, void** data );
 
 /**
  * Add a new item to the tail of the queue. If no more space is available, the
@@ -584,6 +580,30 @@ bool gac_queue_pop( gac_queue_t* queue, void** data, bool free_data );
  *  True on success, false on failure.
  */
 bool gac_queue_push( gac_queue_t* queue, void* data );
+
+/**
+ * The same as gac_queue_pop() but also freeing the data item with the
+ * configured remove handler.
+ *
+ * @param queue
+ *  A pointer to the queue.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_queue_remove( gac_queue_t* queue );
+
+/**
+ * Set a remove handler which will be called whenever an item is removed from
+ * the queue.
+ *
+ * @param queue
+ *  A pointer to the queue.
+ * @param rm
+ *  The renmove handler.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ));
 
 // SACCADE /////////////////////////////////////////////////////////////////////
 
@@ -683,6 +703,14 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
  *  The allocated sample structure or NULL on failure.
  */
 gac_sample_t* gac_sample_create( vec3* origin, vec3* point, double timestamp );
+
+/**
+ * Destroy a sample structure.
+ *
+ * @param sample
+ *  A pointer to the structure to be destroyed.
+ */
+void gac_sample_destroy( void* sample );
 
 /**
  * Initialise a sample structure.

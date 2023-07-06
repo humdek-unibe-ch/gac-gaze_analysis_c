@@ -23,7 +23,7 @@ void gac_destroy( gac_t* h )
         return;
     }
 
-    gac_queue_destroy( &h->samples, free );
+    gac_queue_destroy( &h->samples );
     gac_fixation_filter_destroy( &h->fixation );
     gac_saccade_filter_destroy( &h->saccade );
     gac_filter_gap_destroy( &h->gap );
@@ -74,6 +74,9 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
             h->parameter.noise.mid_idx );
     gac_filter_gap_init( &h->gap, h->parameter.gap.max_gap_length,
             h->parameter.gap.sample_period );
+
+    gac_queue_init( &h->samples, 0 );
+    gac_queue_set_rm_handler( &h->samples, gac_sample_destroy );
 
     return true;
 }
@@ -196,7 +199,7 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
 
     if( filter->window.count == filter->window.length )
     {
-        gac_queue_pop( &filter->window, NULL, true );
+        gac_queue_remove( &filter->window );
     }
     gac_queue_push( &filter->window, sample );
 
@@ -238,7 +241,7 @@ void gac_filter_noise_destroy( gac_filter_noise_t* filter )
         return;
     }
 
-    gac_queue_destroy( &filter->window, free );
+    gac_queue_destroy( &filter->window );
     if( filter->is_heap )
     {
         free( filter );
@@ -259,6 +262,7 @@ bool gac_filter_noise_init( gac_filter_noise_t* filter,
     filter->type = type;
     filter->mid = mid_idx;
     gac_queue_init( &filter->window, mid_idx * 2 + 1 );
+    gac_queue_set_rm_handler( &filter->window, gac_sample_destroy );
 
     return true;
 }
@@ -460,7 +464,7 @@ gac_queue_t* gac_queue_create( uint32_t length )
 }
 
 /******************************************************************************/
-void gac_queue_destroy( gac_queue_t* queue, void ( *cb )( void* ) )
+void gac_queue_destroy( gac_queue_t* queue )
 {
     gac_queue_item_t* head = queue->head;
     gac_queue_item_t* item;
@@ -474,9 +478,9 @@ void gac_queue_destroy( gac_queue_t* queue, void ( *cb )( void* ) )
     {
         item = head;
         head = head->prev;
-        if( item->data != NULL && cb != NULL )
+        if( item->data != NULL && queue->rm != NULL )
         {
-            cb( item->data );
+            queue->rm( item->data );
         }
         free( item );
     }
@@ -537,12 +541,13 @@ bool gac_queue_init( gac_queue_t* queue, uint32_t length )
     queue->length = 0;
     queue->head = NULL;
     queue->tail = NULL;
+    queue->rm = NULL;
 
     return gac_queue_grow( queue, length );
 }
 
 /******************************************************************************/
-bool gac_queue_pop( gac_queue_t* queue, void** data, bool free_data )
+bool gac_queue_pop( gac_queue_t* queue, void** data )
 {
     gac_queue_item_t* free_item;
 
@@ -553,11 +558,6 @@ bool gac_queue_pop( gac_queue_t* queue, void** data, bool free_data )
 
     free_item = queue->head;
 
-    if( free_data == true )
-    {
-        free( free_item->data );
-        free_item->data = NULL;
-    }
     if( data != NULL )
     {
         *data = free_item->data;
@@ -571,7 +571,7 @@ bool gac_queue_pop( gac_queue_t* queue, void** data, bool free_data )
         free_item->next = NULL;
         free_item->prev = NULL;
     }
-    else
+    else if( queue->count > 1 )
     {
         queue->head = queue->head->prev;
         free_item->next = queue->tail;
@@ -610,6 +610,33 @@ bool gac_queue_push( gac_queue_t* queue, void* data )
     item->data = data;
     queue->tail = item;
     queue->count++;
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_queue_remove( gac_queue_t* queue )
+{
+    void* data;
+    gac_queue_pop( queue, &data );
+
+    if( data != NULL && queue->rm != NULL )
+    {
+        queue->rm( data );
+    }
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ))
+{
+    if( queue == NULL || rm == NULL )
+    {
+        return false;
+    }
+
+    queue->rm = rm;
 
     return true;
 }
@@ -777,6 +804,22 @@ gac_sample_t* gac_sample_create( vec3* origin, vec3* point, double timestamp )
 }
 
 /******************************************************************************/
+void gac_sample_destroy( void* data )
+{
+    gac_sample_t* sample = data;
+
+    if( sample == NULL )
+    {
+        return;
+    }
+
+    if( sample->is_heap )
+    {
+        free( sample );
+    }
+}
+
+/******************************************************************************/
 bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
         double timestamp )
 {
@@ -799,7 +842,7 @@ bool gac_sample_window_cleanup( gac_t* h )
     while( h->samples.count > h->fixation.window.count
             && h->samples.count > h->saccade.window.count )
     {
-        gac_queue_pop( &h->samples, NULL, true );
+        gac_queue_remove( &h->samples );
     }
 
     return true;
