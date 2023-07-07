@@ -60,9 +60,9 @@ flags = [
 '-isystem', '/usr/target/include',
 '-isystem', '/usr/include',
 '-I', '.',
-'-I', '../minunit',
-'-I', '../../include',
-'-I', '../../cglm/include',
+'-I', 'minunit',
+'-I', '../include',
+'-I', '../cglm/include',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

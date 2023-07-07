@@ -205,7 +205,8 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
 
     if( filter->window.count < filter->window.length )
     {
-        return sample;
+        return gac_sample_create( &sample->origin, &sample->point,
+                sample->timestamp );
     }
 
     switch( filter->type )
@@ -217,6 +218,29 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
     }
 
     return sample;
+}
+
+/******************************************************************************/
+gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
+{
+    uint32_t count = 0;
+    gac_sample_t* sample_mid = sample_mid;
+    gac_queue_item_t* mid;
+    vec3 point;
+    vec3 origin;
+
+    gac_samples_average_point( &filter->window, &point, 0 );
+    gac_samples_average_origin( &filter->window, &origin, 0 );
+
+    mid = filter->window.tail;
+    while( mid != NULL && mid->next != NULL && count < filter->mid )
+    {
+        mid = mid->next;
+        count++;
+    }
+    sample_mid = mid->data;
+
+    return gac_sample_create( &origin, &point, sample_mid->timestamp );
 }
 
 /******************************************************************************/
@@ -265,28 +289,6 @@ bool gac_filter_noise_init( gac_filter_noise_t* filter,
     gac_queue_set_rm_handler( &filter->window, gac_sample_destroy );
 
     return true;
-}
-
-/******************************************************************************/
-gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
-{
-    uint32_t i;
-    gac_sample_t* sample_mid = sample_mid;
-    gac_queue_item_t* mid;
-    vec3 point;
-    vec3 origin;
-
-    gac_samples_average_point( &filter->window, &point, 0 );
-    gac_samples_average_origin( &filter->window, &point, 0 );
-
-    mid = filter->window.tail;
-    for( i = 0; i < filter->mid; i++ )
-    {
-        mid = mid->next;
-    }
-    sample_mid = mid->data;
-
-    return gac_sample_create( &origin, &point, sample_mid->timestamp );
 }
 
 /******************************************************************************/
@@ -496,33 +498,45 @@ bool gac_queue_grow( gac_queue_t* queue, uint32_t count )
 {
     uint32_t i;
     gac_queue_item_t* item = NULL;
+    gac_queue_item_t* last_item = NULL;
 
     if( queue == NULL )
     {
         return false;
     }
 
+    if( queue->tail != NULL )
+    {
+        last_item = queue->tail->prev;
+    }
+
     for( i = 0; i < count; i++ )
     {
         item = malloc( sizeof( gac_queue_item_t ) );
         item->data = NULL;
-        item->prev = NULL;
         item->next = NULL;
-        if( queue->tail == NULL )
+        item->prev = last_item;
+        if( last_item != NULL )
         {
-            queue->tail = item;
+            last_item->next = item;
         }
-        else
-        {
-            item->next = queue->tail;
-            item->prev = queue->tail->prev;
-            queue->tail->prev = item;
-        }
-        if( queue->head == NULL )
-        {
-            queue->head = item;
-        }
+        last_item = item;
         queue->length++;
+    }
+
+    if( queue->tail != NULL )
+    {
+        queue->tail->prev = item;
+        item->next = queue->tail;
+    }
+    else
+    {
+        queue->tail = item;
+    }
+
+    if( queue->head == NULL )
+    {
+        queue->head = item;
     }
 
     return true;
