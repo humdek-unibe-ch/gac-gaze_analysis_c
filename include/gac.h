@@ -19,6 +19,7 @@ typedef struct gac_queue_s gac_queue_t;
 typedef struct gac_queue_item_s gac_queue_item_t;
 
 typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
+typedef enum gac_fixation_step_action_e gac_fixation_step_action_t;
 
 /**
  * The available noise filter types
@@ -29,6 +30,13 @@ enum gac_filter_noise_type_e
     GAC_FILTER_NOISE_TYPE_AVERAGE,
     /** [not implemented] Moving median filtering */
     GAC_FILTER_NOISE_TYPE_MEDIAN,
+};
+
+enum gac_fixation_step_action_e
+{
+    GAC_FIXATION_STEP_ACTION_SHRINK,
+    GAC_FIXATION_STEP_ACTION_CLEAR,
+    GAC_FIXATION_STEP_ACTION_NONE
 };
 
 /**
@@ -291,6 +299,66 @@ bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter );
 // FILTER //////////////////////////////////////////////////////////////////////
 
 /**
+ * The fixation detection algorithm I-DT.
+ *
+ * @param filter
+ *  The gap filter structure holding the configuration parameters.
+ * @param sample
+ *  The lastes sample
+ * @param fixation
+ *  A location where a detected fixation is stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True if a fixation was detected, false otherwise.
+ */
+bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
+        gac_fixation_t* fixation );
+
+/**
+ *
+ */
+bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
+        gac_sample_t* sample, gac_fixation_t* fixation,
+        gac_fixation_step_action_t* action );
+
+/**
+ * Allocate a new fixation filter structure on the heap. This structure must be
+ * freed.
+ *
+ * @param dispersion_threshold
+ *  The dispersion thresholad in degrees.
+ * @apram duratio_threshold
+ *  The duration threshold in milliseconds.
+ * @return
+ *  The allocated fixation filter structure or NULL on failure.
+ */
+gac_filter_fixation_t* gac_filter_fixation_create(
+        float dispersion_threshold, double duration_threshold );
+
+/**
+ * Destroy the fixation filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to destroy.
+ */
+void gac_filter_fixation_destroy( gac_filter_fixation_t* filter );
+
+/**
+ * Initialise a fixation filter structure.
+ *
+ * @param filter
+ *  The filter structure to initialise.
+ * @param dispersion_threshold
+ *  The dispersion thresholad in degrees.
+ * @apram duratio_threshold
+ *  The duration threshold in milliseconds.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
+        float dispersion_threshold, double duration_threshold );
+
+/**
  * Fill in gaps between the last sample and the current sample if any.
  * The number of samples to be filled in depends on the sample period.
  * To avoid filling up large gaps the gap filling is limited to a maximal
@@ -443,44 +511,7 @@ gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
  * @return
  *  True if a fixation was detected, false otherwise.
  */
-bool gac_fixation_filter( gac_t* h, gac_fixation_t* fixation );
-
-/**
- * Allocate a new fixation filter structure on the heap. This structure must be
- * freed.
- *
- * @param dispersion_threshold
- *  The dispersion thresholad in degrees.
- * @apram duratio_threshold
- *  The duration threshold in milliseconds.
- * @return
- *  The allocated fixation filter structure or NULL on failure.
- */
-gac_filter_fixation_t* gac_fixation_filter_create(
-        float dispersion_threshold, double duration_threshold );
-
-/**
- * Destroy the fixation filter structure.
- *
- * @param filter
- *  A pointer to the structure to destroy.
- */
-void gac_fixation_filter_destroy( gac_filter_fixation_t* filter );
-
-/**
- * Initialise a fixation filter structure.
- *
- * @param filter
- *  The filter structure to initialise.
- * @param dispersion_threshold
- *  The dispersion thresholad in degrees.
- * @apram duratio_threshold
- *  The duration threshold in milliseconds.
- * @return
- *  True on success, false on failure.
- */
-bool gac_fixation_filter_init( gac_filter_fixation_t* filter,
-        float dispersion_threshold, double duration_threshold );
+bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation );
 
 /**
  * Initialise a fixation structure.
@@ -513,6 +544,17 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec3* point,
 float gac_fixation_normalised_dispersion_threshold( float angle );
 
 // QUEUE ///////////////////////////////////////////////////////////////////////
+
+/**
+ * Remove all data items from the queue. The queue remove handler is used to
+ * free the data.
+ *
+ * @param queue
+ *  The queue to clear
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_queue_clear( gac_queue_t* queue );
 
 /**
  * Allocate a new queue structure. This needs to be freed.

@@ -88,6 +88,14 @@ void grow()
     mu_assert_int_eq( count, q->count );
 }
 
+void clear()
+{
+    gac_queue_clear( q );
+    count = 0;
+    mu_assert_int_eq( length, q->length );
+    mu_assert_int_eq( count, q->count );
+}
+
 MU_TEST( push_1 )
 {
     push();
@@ -277,6 +285,35 @@ MU_TEST( grow_n_push_np2_pop_np2 )
     pop();
 }
 
+MU_TEST( clear_0 )
+{
+    clear();
+}
+
+MU_TEST( clear_1 )
+{
+    push();
+    clear();
+}
+
+MU_TEST( clear_n )
+{
+    push();
+    push();
+    push();
+    push();
+    push();
+    clear();
+}
+
+MU_TEST( clear_1_push_1 )
+{
+    push();
+    clear();
+    push();
+    clear();
+}
+
 MU_TEST( init_0 )
 {
     gac_queue_init( &q_stack, 0 );
@@ -329,6 +366,10 @@ void testcases()
     MU_RUN_TEST( grow_n_push_np );
     MU_RUN_TEST( grow_n_push_np2 );
     MU_RUN_TEST( grow_n_push_np2_pop_np2 );
+    MU_RUN_TEST( clear_0 );
+    MU_RUN_TEST( clear_1 );
+    MU_RUN_TEST( clear_n );
+    MU_RUN_TEST( clear_1_push_1 );
 }
 
 MU_TEST_SUITE(init_queue_suite)

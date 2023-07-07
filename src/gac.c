@@ -24,7 +24,7 @@ void gac_destroy( gac_t* h )
     }
 
     gac_queue_destroy( &h->samples );
-    gac_fixation_filter_destroy( &h->fixation );
+    gac_filter_fixation_destroy( &h->fixation );
     gac_saccade_filter_destroy( &h->saccade );
     gac_filter_gap_destroy( &h->gap );
     gac_filter_noise_destroy( &h->noise );
@@ -50,7 +50,7 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     h->parameter.noise.mid_idx = 1;
     h->parameter.noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
     h->parameter.gap.max_gap_length = 50;
-    h->parameter.gap.sample_period = 16.67;
+    h->parameter.gap.sample_period = 1000.0/60.0;
     if( parameter != NULL )
     {
         h->parameter.fixation.dispersion_threshold =
@@ -65,7 +65,7 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
         h->parameter.gap.sample_period = parameter->gap.sample_period;
     }
 
-    gac_fixation_filter_init( &h->fixation,
+    gac_filter_fixation_init( &h->fixation,
             h->parameter.fixation.dispersion_threshold,
             h->parameter.fixation.duration_threshold );
     gac_saccade_filter_init( &h->saccade,
@@ -101,6 +101,149 @@ bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter )
     parameter->gap.sample_period = h->parameter.gap.sample_period;
 
     return true;
+}
+
+/******************************************************************************/
+bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
+        gac_fixation_t* fixation )
+{
+    bool res;
+    gac_fixation_step_action_t action;
+
+    gac_queue_push( &filter->window, sample );
+    res = gac_filter_fixation_step( filter, sample, fixation, &action );
+
+    switch( action )
+    {
+        case GAC_FIXATION_STEP_ACTION_SHRINK:
+            gac_queue_remove( &filter->window );
+            break;
+        case GAC_FIXATION_STEP_ACTION_CLEAR:
+            gac_queue_clear( &filter->window );
+            break;
+        default:
+            break;
+    }
+
+    return res;
+}
+
+/******************************************************************************/
+gac_filter_fixation_t* gac_filter_fixation_create(
+        float dispersion_threshold, double duration_threshold )
+{
+    gac_filter_fixation_t* filter = malloc( sizeof( gac_filter_fixation_t ) );
+    if( !gac_filter_fixation_init( filter, dispersion_threshold,
+                duration_threshold ) )
+    {
+        return NULL;
+    }
+    filter->is_heap = true;
+
+    return filter;
+}
+
+/******************************************************************************/
+void gac_filter_fixation_destroy( gac_filter_fixation_t* filter )
+{
+    if( filter == NULL )
+    {
+        return;
+    }
+
+    gac_queue_destroy( &filter->window );
+
+    if( filter->is_heap )
+    {
+        free( filter );
+    }
+}
+
+/******************************************************************************/
+bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
+        float dispersion_threshold,
+        double duration_threshold )
+{
+    if( filter == NULL )
+    {
+        return false;
+    }
+
+    filter->is_heap = false;
+    filter->duration = 0;
+    glm_vec3_zero( filter->point );
+    filter->is_collecting = false;
+    filter->duration_threshold = duration_threshold;
+    filter->normalized_dispersion_threshold =
+        gac_fixation_normalised_dispersion_threshold( dispersion_threshold );
+    gac_queue_init( &filter->window, 0 );
+    gac_queue_set_rm_handler( &filter->window, gac_sample_destroy );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
+        gac_sample_t* sample, gac_fixation_t* fixation,
+        gac_fixation_step_action_t* action )
+{
+    double duration;
+    float dispersion, dispersion_threshold, distance;
+    vec3 origin;
+    vec3 point;
+    gac_sample_t* first_sample;
+    gac_queue_t* window;
+    if( action != NULL )
+    {
+        *action = GAC_FIXATION_STEP_ACTION_NONE;
+    }
+
+    if( fixation == NULL || sample == NULL )
+    {
+        return false;
+    }
+    window = &filter->window;
+
+    first_sample = window->head->data;
+    duration = sample->timestamp - first_sample->timestamp;
+    if( duration >= filter->duration_threshold )
+    {
+        gac_samples_dispersion( window, &dispersion, 0 );
+
+        gac_samples_average_origin( window, &origin, 0 );
+        gac_samples_average_point( window, &point, 0 );
+        distance = glm_vec3_distance( origin, point );
+        dispersion_threshold = distance * filter->normalized_dispersion_threshold;
+
+        if( dispersion <= dispersion_threshold)
+        {
+            if( !filter->is_collecting )
+            {
+                // fixation start
+                filter->is_collecting = true;
+            }
+            filter->duration = duration;
+            glm_vec3_copy( point, filter->point );
+        }
+        else if( filter->is_collecting )
+        {
+            // fixation stop
+            gac_fixation_init( fixation, &filter->point,
+                    first_sample->timestamp, filter->duration );
+            filter->is_collecting = false;
+            if( action != NULL )
+            {
+                *action = GAC_FIXATION_STEP_ACTION_CLEAR;
+            }
+            return true;
+        }
+        else
+        {
+            *action = GAC_FIXATION_STEP_ACTION_SHRINK;
+        }
+    }
+
+    return false;
 }
 
 /******************************************************************************/
@@ -314,23 +457,18 @@ gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
 }
 
 /******************************************************************************/
-bool gac_fixation_filter( gac_t* h, gac_fixation_t* fixation )
+bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 {
-    double duration;
-    float dispersion, dispersion_threshold, distance;
-    vec3 origin;
-    vec3 point;
     gac_sample_t* sample;
-    gac_sample_t* first_sample;
-    gac_filter_fixation_t* filter;
     gac_queue_t* window;
+    gac_fixation_step_action_t action;
+    bool res;
 
     if( fixation == NULL || h == NULL )
     {
         return false;
     }
-    filter = &h->fixation;
-    window = &filter->window;
+    window = &h->fixation.window;
 
     if( window->head == NULL )
     {
@@ -344,97 +482,24 @@ bool gac_fixation_filter( gac_t* h, gac_fixation_t* fixation )
     window->count++;
 
     sample = window->tail->data;
-    first_sample = window->head->data;
 
-    duration = sample->timestamp - first_sample->timestamp;
-    if( duration >= filter->duration_threshold )
+    res = gac_filter_fixation_step( &h->fixation, sample, fixation, &action );
+
+    switch( action )
     {
-        gac_samples_dispersion( window, &dispersion, 0 );
-
-        gac_samples_average_origin( window, &origin, 0 );
-        gac_samples_average_point( window, &point, 0 );
-        distance = glm_vec3_distance( origin, point );
-        dispersion_threshold = distance * filter->normalized_dispersion_threshold;
-
-        if( dispersion <= dispersion_threshold)
-        {
-            if( !filter->is_collecting )
-            {
-                // fixation start
-                filter->is_collecting = true;
-            }
-            filter->duration = duration;
-            glm_vec3_copy( point, filter->point );
-        }
-        else if( filter->is_collecting )
-        {
-            // fixation stop
-            gac_fixation_init( fixation, &filter->point,
-                    first_sample->timestamp, filter->duration );
-            filter->is_collecting = false;
-            window->count = 0;
-            window->head = window->tail;
-            return true;
-        }
-        else
-        {
+        case GAC_FIXATION_STEP_ACTION_SHRINK:
             window->count--;
             window->head = window->head->prev;
-        }
+            break;
+        case GAC_FIXATION_STEP_ACTION_CLEAR:
+            window->count = 0;
+            window->head = window->tail;
+            break;
+        default:
+            break;
     }
 
-    return false;
-}
-
-/******************************************************************************/
-gac_filter_fixation_t* gac_fixation_filter_create(
-        float dispersion_threshold, double duration_threshold )
-{
-    gac_filter_fixation_t* filter = malloc( sizeof( gac_filter_fixation_t ) );
-    if( !gac_fixation_filter_init( filter, dispersion_threshold,
-                duration_threshold ) )
-    {
-        return NULL;
-    }
-    filter->is_heap = true;
-
-    return filter;
-}
-
-/******************************************************************************/
-void gac_fixation_filter_destroy( gac_filter_fixation_t* filter )
-{
-    if( filter == NULL )
-    {
-        return;
-    }
-
-    if( filter->is_heap )
-    {
-        free( filter );
-    }
-}
-
-/******************************************************************************/
-bool gac_fixation_filter_init( gac_filter_fixation_t* filter,
-        float dispersion_threshold,
-        double duration_threshold )
-{
-    if( filter == NULL )
-    {
-        return false;
-    }
-
-    filter->is_heap = false;
-    filter->duration = 0;
-    glm_vec3_zero( filter->point );
-    filter->is_collecting = false;
-    filter->duration_threshold = duration_threshold;
-    filter->normalized_dispersion_threshold =
-        gac_fixation_normalised_dispersion_threshold( dispersion_threshold );
-    gac_queue_init( &filter->window, 0 );
-
-    return true;
+    return res;
 }
 
 /******************************************************************************/
@@ -461,6 +526,34 @@ float gac_fixation_normalised_dispersion_threshold( float angle )
 }
 
 /******************************************************************************/
+bool gac_queue_clear( gac_queue_t* queue )
+{
+    if( queue == NULL )
+    {
+        return false;
+    }
+
+    if( queue->count == 0 )
+    {
+        return true;
+    }
+
+    while( queue->tail != NULL )
+    {
+        if( queue->tail->data != NULL && queue->rm != NULL )
+        {
+            queue->rm( queue->tail->data );
+            queue->tail->data = NULL;
+        }
+        queue->count--;
+        queue->tail = queue->tail->next;
+    }
+    queue->tail = queue->head;
+
+    return true;
+}
+
+/******************************************************************************/
 gac_queue_t* gac_queue_create( uint32_t length )
 {
     gac_queue_t* queue = malloc( sizeof( gac_queue_t ) );
@@ -484,16 +577,19 @@ void gac_queue_destroy( gac_queue_t* queue )
         return;
     }
 
-    head = queue->head;
-    while( head != NULL )
+    if( queue->length > 0 )
     {
-        item = head;
-        head = head->prev;
-        if( item->data != NULL && queue->rm != NULL )
+        head = queue->head;
+        while( head != NULL )
         {
-            queue->rm( item->data );
+            item = head;
+            head = head->prev;
+            if( item->data != NULL && queue->rm != NULL )
+            {
+                queue->rm( item->data );
+            }
+            free( item );
         }
-        free( item );
     }
 
     if( queue->is_heap )
