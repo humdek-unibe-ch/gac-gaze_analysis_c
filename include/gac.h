@@ -315,13 +315,6 @@ bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
         gac_fixation_t* fixation );
 
 /**
- *
- */
-bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
-        gac_sample_t* sample, gac_fixation_t* fixation,
-        gac_fixation_step_action_t* action );
-
-/**
  * Allocate a new fixation filter structure on the heap. This structure must be
  * freed.
  *
@@ -357,6 +350,28 @@ void gac_filter_fixation_destroy( gac_filter_fixation_t* filter );
  */
 bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
         float dispersion_threshold, double duration_threshold );
+
+/**
+ * Internal function to compute the fixation detection algorithm I-DT.
+ * Do not use this function. INstead use either the function
+ * gac_sample_window_fixation_filter() or gac_filter_fixation().
+ *
+ * @param filter
+ *  The gap filter structure holding the configuration parameters.
+ * @param sample
+ *  The lastes sample
+ * @param fixation
+ *  A location where a detected fixation is stored. This is only valid if the
+ *  function returns true.
+ * @param action
+ *  An action code indicating to the parent function which action to perform
+ *  an the sample window.
+ * @return
+ *  True if a fixation was detected, false otherwise.
+ */
+bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
+        gac_sample_t* sample, gac_fixation_t* fixation,
+        gac_fixation_step_action_t* action );
 
 /**
  * Fill in gaps between the last sample and the current sample if any.
@@ -481,6 +496,71 @@ bool gac_filter_noise_init( gac_filter_noise_t* filter,
  */
 gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter );
 
+/**
+ * The saccade detection algorithm I-VT.
+ *
+ * @param filter
+ *  The filter parameters
+ * @param sample
+ *  The lastes sample
+ * @param saccade
+ *  A location where a detected saccade is stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True if a saccade was detected, false otherwise.
+ */
+bool gac_filter_saccade( gac_filter_saccade_t* filter, gac_sample_t* sample,
+        gac_saccade_t* saccade );
+
+/**
+ * Allocate a new saccade filter structure on the heap. This needs to be freed.
+ *
+ * @param velocity_thresold
+ *  The velocity threshold in degrees per second.
+ * @return
+ *  A pointer to the allocated filter structure or NUll on failure.
+ */
+gac_filter_saccade_t* gac_filter_saccade_create( float velocity_threshold );
+
+/**
+ * Destroy the saccade filter structure.
+ *
+ * @param filter
+ *  A pointer to the structure to destroy.
+ */
+void gac_filter_saccade_destroy( gac_filter_saccade_t* filter );
+
+/**
+ * Initialise a saccade filter structure.
+ *
+ * @param filter
+ *  A pointer to the filter structure to initialise.
+ * @param velocity_thresold
+ *  The velocity threshold in degrees per second.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
+        float velocity_threshold );
+
+/**
+ * Internal function to compute the I-VT algorithm. Do not use this function.
+ * Instead use either the function gac_sample_window_saccade_filter() or
+ * gac_filter_saccade().
+ *
+ * @param filter
+ *  The filter parameters
+ * @param sample
+ *  The lastes sample
+ * @param saccade
+ *  A location where a detected saccade is stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True if a saccade was detected, false otherwise.
+ */
+bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
+        gac_saccade_t* saccade );
+
 // FIXATION ////////////////////////////////////////////////////////////////////
 
 /**
@@ -500,18 +580,12 @@ gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
         double duration );
 
 /**
- * The fixation detection algorithm I-DT. This acts on the sample window managed
- * by the functions gac_sample_add() and gac_sample_cleanup().
+ * Destroy a fixation structure.
  *
- * @param h
- *  A pointer to the gaze analysis handler.
  * @param fixation
- *  A location where a detected fixation is stored. This is only valid if the
- *  function returns true.
- * @return
- *  True if a fixation was detected, false otherwise.
+ *  A pointer to the fixation structure to destroy.
  */
-bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation );
+void gac_fixation_destroy( gac_fixation_t* fixation );
 
 /**
  * Initialise a fixation structure.
@@ -668,49 +742,12 @@ gac_saccade_t* gac_saccade_create( vec3* point_start, vec3* point_dest,
         double timestamp, double duration );
 
 /**
- * The saccade detection algorithm I-VT. This acts on the sample window managed
- * by the functions gac_sample_add() and gac_sample_cleanup().
+ * Destroy a saccade structure.
  *
- * @param h
- *  A pointer to the gaze analysis handler.
  * @param saccade
- *  A location where a detected saccade is stored. This is only valid if the
- *  function returns true.
- * @return
- *  True if a saccade was detected, false otherwise.
+ *  A pointer to the saccade structure to destroy.
  */
-bool gac_saccade_filter( gac_t* h, gac_saccade_t* saccade );
-
-/**
- * Allocate a new saccade filter structure on the heap. This needs to be freed.
- *
- * @param velocity_thresold
- *  The velocity threshold in degrees per second.
- * @return
- *  A pointer to the allocated filter structure or NUll on failure.
- */
-gac_filter_saccade_t* gac_saccade_filter_create( float velocity_threshold );
-
-/**
- * Destroy the saccade filter structure.
- *
- * @param filter
- *  A pointer to the structure to destroy.
- */
-void gac_saccade_filter_destroy( gac_filter_saccade_t* filter );
-
-/**
- * Initialise a saccade filter structure.
- *
- * @param filter
- *  A pointer to the filter structure to initialise.
- * @param velocity_thresold
- *  The velocity threshold in degrees per second.
- * @return
- *  True on success, false on failure.
- */
-bool gac_saccade_filter_init( gac_filter_saccade_t* filter,
-        float velocity_threshold );
+void gac_saccade_destroy( gac_saccade_t* saccade );
 
 /**
  * Initialise a saccade structure.
@@ -773,6 +810,45 @@ bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
         double timestamp );
 
 /**
+ * Cleanup the sample window. This removes all sample data from the sample
+ * window which is no longer used for the gaze analysis.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_sample_window_cleanup( gac_t* h );
+
+/**
+ * The fixation detection algorithm I-DT. This acts on the sample window managed
+ * by the functions gac_sample_add() and gac_sample_cleanup().
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param fixation
+ *  A location where a detected fixation is stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True if a fixation was detected, false otherwise.
+ */
+bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation );
+
+/**
+ * The saccade detection algorithm I-VT. This acts on the sample window managed
+ * by the functions gac_sample_add() and gac_sample_cleanup().
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param saccade
+ *  A location where a detected saccade is stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True if a saccade was detected, false otherwise.
+ */
+bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade );
+
+/**
  * Update the sample window with a new sample. If noise filtering is enabled
  * the filtered data is added to the sample window and the raw sample is
  * dismissed. If gap filtering is enabled, sample gaps are filled-in with
@@ -799,17 +875,6 @@ bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
  */
 uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp );
-
-/**
- * Cleanup the sample window. This removes all sample data from the sample
- * window which is no longer used for the gaze analysis.
- *
- * @param h
- *  A pointer to the gaze analysis handler.
- * @return
- *  True on success, false on failure.
- */
-bool gac_sample_window_cleanup( gac_t* h );
 
 // SAMPLES /////////////////////////////////////////////////////////////////////
 

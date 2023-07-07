@@ -25,7 +25,7 @@ void gac_destroy( gac_t* h )
 
     gac_queue_destroy( &h->samples );
     gac_filter_fixation_destroy( &h->fixation );
-    gac_saccade_filter_destroy( &h->saccade );
+    gac_filter_saccade_destroy( &h->saccade );
     gac_filter_gap_destroy( &h->gap );
     gac_filter_noise_destroy( &h->noise );
 
@@ -68,7 +68,7 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     gac_filter_fixation_init( &h->fixation,
             h->parameter.fixation.dispersion_threshold,
             h->parameter.fixation.duration_threshold );
-    gac_saccade_filter_init( &h->saccade,
+    gac_filter_saccade_init( &h->saccade,
             h->parameter.saccade.velocity_threshold );
     gac_filter_noise_init( &h->noise, h->parameter.noise.type,
             h->parameter.noise.mid_idx );
@@ -198,7 +198,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         *action = GAC_FIXATION_STEP_ACTION_NONE;
     }
 
-    if( fixation == NULL || sample == NULL )
+    if( fixation == NULL || sample == NULL || filter == NULL )
     {
         return false;
     }
@@ -443,6 +443,124 @@ bool gac_filter_noise_init( gac_filter_noise_t* filter,
 }
 
 /******************************************************************************/
+bool gac_filter_saccade( gac_filter_saccade_t* filter, gac_sample_t* sample,
+        gac_saccade_t* saccade )
+{
+    bool res;
+
+    gac_queue_push( &filter->window, sample );
+    res = gac_filter_saccade_step( filter, sample, saccade );
+    if( res == true )
+    {
+        gac_queue_clear( &filter->window );
+    }
+
+    return res;
+}
+
+/******************************************************************************/
+gac_filter_saccade_t* gac_filter_saccade_create( float velocity_threshold )
+{
+    gac_filter_saccade_t* filter = malloc( sizeof( gac_filter_saccade_t ) );
+    if( !gac_filter_saccade_init( filter, velocity_threshold ) )
+    {
+        return NULL;
+    }
+    filter->is_heap = true;
+
+    return filter;
+}
+
+/******************************************************************************/
+void gac_filter_saccade_destroy( gac_filter_saccade_t* filter )
+{
+    if( filter == NULL )
+    {
+        return;
+    }
+
+    if( filter->is_heap )
+    {
+        free( filter );
+    }
+}
+
+/******************************************************************************/
+bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
+        float velocity_threshold )
+{
+    if( filter == NULL )
+    {
+        return false;
+    }
+
+    filter->is_heap = false;
+    filter->is_collecting = false;
+    filter->velocity_threshold = velocity_threshold;
+    filter->duration = 0;
+    gac_queue_init( &filter->window, 0 );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
+        gac_saccade_t* saccade )
+{
+    gac_sample_t* s1;
+    gac_sample_t* s2;
+    vec3 v1;
+    vec3 v2;
+    double duration;
+    float angle;
+    float velocity;
+    gac_queue_t* window;
+
+    if( filter == NULL || saccade == NULL || sample == NULL )
+    {
+        return false;
+    }
+    window = &filter->window;
+
+    if( window->count < 2 )
+    {
+        return false;
+    }
+
+    s2 = window->tail->data;
+    s1 = window->tail->next->data;
+    duration = ( s1->timestamp - s2->timestamp ) * 1000;
+
+    glm_vec3_sub( s1->point, s1->origin, v1 );
+    glm_vec3_sub( s2->point, s2->origin, v2 );
+
+    angle = glm_vec3_angle( v1, v2 ) * 180 / M_PI;
+    velocity =  angle / duration;
+
+    if( velocity > filter->velocity_threshold )
+    {
+        if( !filter->is_collecting )
+        {
+            // saccade start
+            filter->is_collecting = true;
+        }
+        filter->duration = duration;
+    }
+    else if( filter->is_collecting )
+    {
+        // saccade stop
+        s2 = s1;
+        s1 = window->head->data;
+        gac_saccade_init( saccade, &s1->point, &s2->point,
+                s1->timestamp, filter->duration );
+        filter->is_collecting = false;
+        return true;
+    }
+
+    return false;
+}
+
+/******************************************************************************/
 gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
         double duration )
 {
@@ -457,49 +575,17 @@ gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
 }
 
 /******************************************************************************/
-bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
+void gac_fixation_destroy( gac_fixation_t* fixation )
 {
-    gac_sample_t* sample;
-    gac_queue_t* window;
-    gac_fixation_step_action_t action;
-    bool res;
-
-    if( fixation == NULL || h == NULL )
+    if( fixation == NULL )
     {
-        return false;
-    }
-    window = &h->fixation.window;
-
-    if( window->head == NULL )
-    {
-        window->head = h->samples.head;
-    }
-    if( window->tail == NULL )
-    {
-        window->tail = h->samples.head;
-    }
-    window->tail = window->tail->prev;
-    window->count++;
-
-    sample = window->tail->data;
-
-    res = gac_filter_fixation_step( &h->fixation, sample, fixation, &action );
-
-    switch( action )
-    {
-        case GAC_FIXATION_STEP_ACTION_SHRINK:
-            window->count--;
-            window->head = window->head->prev;
-            break;
-        case GAC_FIXATION_STEP_ACTION_CLEAR:
-            window->count = 0;
-            window->head = window->tail;
-            break;
-        default:
-            break;
+        return;
     }
 
-    return res;
+    if( fixation->is_heap )
+    {
+        free( fixation );
+    }
 }
 
 /******************************************************************************/
@@ -776,119 +862,17 @@ gac_saccade_t* gac_saccade_create( vec3* point_start, vec3* point_dest,
 }
 
 /******************************************************************************/
-bool gac_saccade_filter( gac_t* h, gac_saccade_t* saccade )
+void gac_saccade_destroy( gac_saccade_t* saccade )
 {
-    gac_sample_t* s1;
-    gac_sample_t* s2;
-    vec3 v1;
-    vec3 v2;
-    double duration;
-    float angle;
-    float velocity;
-    gac_filter_saccade_t* filter;
-    gac_queue_t* window;
-
-    if( h == NULL || saccade == NULL )
-    {
-        return false;
-    }
-    filter = &h->saccade;
-    window = &filter->window;
-
-    if( window->head == NULL )
-    {
-        window->head = h->samples.head;
-    }
-    if( window->tail == NULL )
-    {
-        window->tail = h->samples.head;
-    }
-    window->tail = window->tail->prev;
-    window->count++;
-
-    if( window->count < 2 )
-    {
-        return false;
-    }
-
-    s2 = window->tail->data;
-    s1 = window->tail->next->data;
-    duration = ( s1->timestamp - s2->timestamp ) * 1000;
-
-    glm_vec3_sub( s1->point, s1->origin, v1 );
-    glm_vec3_sub( s2->point, s2->origin, v2 );
-
-    angle = glm_vec3_angle( v1, v2 ) * 180 / M_PI;
-    velocity =  angle / duration;
-
-    if( velocity > filter->velocity_threshold )
-    {
-        if( !filter->is_collecting )
-        {
-            // saccade start
-            filter->is_collecting = true;
-        }
-        filter->duration = duration;
-    }
-    else if( filter->is_collecting )
-    {
-        // saccade stop
-        s2 = s1;
-        s1 = window->head->data;
-        gac_saccade_init( saccade, &s1->point, &s2->point,
-                s1->timestamp, filter->duration );
-        filter->is_collecting = false;
-        window->count = 0;
-        window->head = window->tail;
-        return true;
-    }
-
-    return false;
-}
-
-/******************************************************************************/
-gac_filter_saccade_t* gac_saccade_filter_create( float velocity_threshold )
-{
-    gac_filter_saccade_t* filter = malloc( sizeof( gac_filter_saccade_t ) );
-    if( !gac_saccade_filter_init( filter, velocity_threshold ) )
-    {
-        return NULL;
-    }
-    filter->is_heap = true;
-
-    return filter;
-}
-
-/******************************************************************************/
-void gac_saccade_filter_destroy( gac_filter_saccade_t* filter )
-{
-    if( filter == NULL )
+    if( saccade == NULL )
     {
         return;
     }
 
-    if( filter->is_heap )
+    if( saccade->is_heap )
     {
-        free( filter );
+        free( saccade );
     }
-}
-
-/******************************************************************************/
-bool gac_saccade_filter_init( gac_filter_saccade_t* filter,
-        float velocity_threshold )
-{
-    if( filter == NULL )
-    {
-        return false;
-    }
-
-    filter->is_heap = false;
-    filter->is_collecting = false;
-    filter->velocity_threshold = velocity_threshold;
-    filter->duration = 0;
-    gac_queue_init( &filter->window, 0 );
-
-    return true;
 }
 
 /******************************************************************************/
@@ -965,6 +949,89 @@ bool gac_sample_window_cleanup( gac_t* h )
     }
 
     return true;
+}
+
+/******************************************************************************/
+bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
+{
+    gac_sample_t* sample;
+    gac_queue_t* window;
+    gac_fixation_step_action_t action;
+    bool res;
+
+    if( fixation == NULL || h == NULL )
+    {
+        return false;
+    }
+    window = &h->fixation.window;
+
+    if( window->head == NULL )
+    {
+        window->head = h->samples.head;
+    }
+    if( window->tail == NULL )
+    {
+        window->tail = h->samples.head;
+    }
+    window->tail = window->tail->prev;
+    window->count++;
+
+    sample = window->tail->data;
+
+    res = gac_filter_fixation_step( &h->fixation, sample, fixation, &action );
+
+    switch( action )
+    {
+        case GAC_FIXATION_STEP_ACTION_SHRINK:
+            window->count--;
+            window->head = window->head->prev;
+            break;
+        case GAC_FIXATION_STEP_ACTION_CLEAR:
+            window->count = 0;
+            window->head = window->tail;
+            break;
+        default:
+            break;
+    }
+
+    return res;
+}
+
+/******************************************************************************/
+bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
+{
+    gac_queue_t* window;
+    gac_sample_t* sample;
+    bool res;
+
+    if( h == NULL || saccade == NULL )
+    {
+        return false;
+    }
+    window = &h->saccade.window;
+
+    if( window->head == NULL )
+    {
+        window->head = h->samples.head;
+    }
+    if( window->tail == NULL )
+    {
+        window->tail = h->samples.head;
+    }
+    window->tail = window->tail->prev;
+    window->count++;
+
+    sample = window->tail->data;
+
+    res = gac_filter_saccade_step( &h->saccade, sample, saccade );
+
+    if( res == true )
+    {
+        window->count = 0;
+        window->head = window->tail;
+    }
+
+    return res;
 }
 
 /******************************************************************************/
