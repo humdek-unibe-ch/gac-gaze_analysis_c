@@ -9,27 +9,16 @@
 #include <cglm/cglm.h>
 #include <sys/time.h>
 
-/** ::gac_s */
 typedef struct gac_s gac_t;
-/** ::gac_filter_fixation_s */
 typedef struct gac_filter_fixation_s gac_filter_fixation_t;
-/** ::gac_filter_gap_s */
 typedef struct gac_filter_gap_s gac_filter_gap_t;
-/** ::gac_filter_noise_s */
 typedef struct gac_filter_noise_s gac_filter_noise_t;
-/** ::gac_filter_saccade_s */
 typedef struct gac_filter_saccade_s gac_filter_saccade_t;
-/** ::gac_filter_parameter_s */
 typedef struct gac_filter_parameter_s gac_filter_parameter_t;
-/** ::gac_fixation_s */
 typedef struct gac_fixation_s gac_fixation_t;
-/** ::gac_saccade_s */
 typedef struct gac_saccade_s gac_saccade_t;
-/** ::gac_sample_s */
 typedef struct gac_sample_s gac_sample_t;
-/** ::gac_queue_s */
 typedef struct gac_queue_s gac_queue_t;
-/** ::gac_queue_item_s */
 typedef struct gac_queue_item_s gac_queue_item_t;
 
 /** #gac_filter_noise_type_e */
