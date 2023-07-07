@@ -116,16 +116,22 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
     vec3 origin;
     double factor;
 
-    if( !filter->is_enabled || samples->count == 0 || sample == NULL )
+    if( !filter->is_enabled || sample == NULL )
     {
         return 0;
+    }
+
+    if( samples->count == 0 )
+    {
+        gac_queue_push( samples, sample );
+        return 1;
     }
 
     last_sample = samples->tail->data;
     inter_arrival_time = sample->timestamp - last_sample->timestamp;
 
     if( inter_arrival_time > filter->sample_period
-            && inter_arrival_time < filter->max_gap_length )
+            && inter_arrival_time <= filter->max_gap_length )
     {
         sample_count = round( inter_arrival_time / filter->sample_period ) - 1;
     }
@@ -140,7 +146,9 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
         gac_queue_push( samples, new_sample );
     }
 
-    return sample_count;
+    gac_queue_push( samples, sample );
+
+    return sample_count + 1;
 }
 
 /******************************************************************************/
@@ -468,7 +476,7 @@ gac_queue_t* gac_queue_create( uint32_t length )
 /******************************************************************************/
 void gac_queue_destroy( gac_queue_t* queue )
 {
-    gac_queue_item_t* head = queue->head;
+    gac_queue_item_t* head;
     gac_queue_item_t* item;
 
     if( queue == NULL )
@@ -476,6 +484,7 @@ void gac_queue_destroy( gac_queue_t* queue )
         return;
     }
 
+    head = queue->head;
     while( head != NULL )
     {
         item = head;
@@ -866,7 +875,6 @@ bool gac_sample_window_cleanup( gac_t* h )
 uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp )
 {
-    uint32_t rc;
     vec3 point;
     vec3 origin;
     gac_sample_t* sample;
@@ -880,14 +888,7 @@ uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
     sample = gac_sample_create( &origin, &point, timestamp );
 
     sample = gac_filter_noise( &h->noise, sample );
-    rc = gac_filter_gap( &h->gap, &h->samples, sample );
-
-    if( gac_queue_push( &h->samples, sample ) )
-    {
-        rc++;
-    }
-
-    return rc;
+    return gac_filter_gap( &h->gap, &h->samples, sample );
 }
 
 /******************************************************************************/

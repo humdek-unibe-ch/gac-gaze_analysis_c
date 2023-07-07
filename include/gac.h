@@ -292,9 +292,10 @@ bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter );
 
 /**
  * Fill in gaps between the last sample and the current sample if any.
- * The number of samples to be filled in depends on yje sample period.
+ * The number of samples to be filled in depends on the sample period.
  * To avoid filling up large gaps the gap filling is limited to a maximal
  * gap length (in milliseconds).
+ * The sample passed to the function is added as well.
  *
  * @param filter
  *  The gap filter structure holding the configuration parameters.
