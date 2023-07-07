@@ -142,7 +142,7 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
         glm_vec3_lerp( last_sample->origin, sample->origin, factor, origin );
         glm_vec3_lerp( last_sample->point, sample->point, factor, point );
         new_sample = gac_sample_create( &origin, &point,
-                last_sample->timestamp + filter->sample_period );
+                last_sample->timestamp + ( i + 1 ) * filter->sample_period );
         gac_queue_push( samples, new_sample );
     }
 

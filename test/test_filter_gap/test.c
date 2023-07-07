@@ -18,20 +18,12 @@ float lerp( float a, float b, float t )
     return a + ( b - a ) * t;
 }
 
-void gap_stack_setup()
+void gap_setup()
 {
     gac_filter_gap_init( &gap_stack, max_gap_length, sample_period );
     gap = &gap_stack;
     gac_queue_init( &samples_stack, 0 );
     samples = &samples_stack;
-}
-
-void gap_heap_setup()
-{
-    gap_heap = gac_filter_gap_create( max_gap_length, sample_period );
-    gap = gap_heap;
-    samples_heap = gac_queue_create( 0 );
-    samples = samples_heap;
 }
 
 void gap_teardown()
@@ -40,7 +32,7 @@ void gap_teardown()
     gac_queue_destroy( samples );
 }
 
-MU_TEST( gap_init )
+MU_TEST( gap_init_stack )
 {
     gac_filter_gap_init( &gap_stack, max_gap_length, sample_period );
     gap = &gap_stack;
@@ -48,10 +40,19 @@ MU_TEST( gap_init )
     samples = &samples_stack;
 }
 
+MU_TEST( gap_init_heap )
+{
+    gap_heap = gac_filter_gap_create( max_gap_length, sample_period );
+    gap = gap_heap;
+    samples_heap = gac_queue_create( 0 );
+    samples = samples_heap;
+}
+
 MU_TEST_SUITE( gap_init_suite )
 {
     MU_SUITE_CONFIGURE( NULL, &gap_teardown );
-    MU_RUN_TEST( gap_init );
+    MU_RUN_TEST( gap_init_stack );
+    MU_RUN_TEST( gap_init_heap );
 }
 
 MU_TEST( gap_1 )
@@ -64,16 +65,17 @@ MU_TEST( gap_1 )
 
     gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
     count = gac_filter_gap( gap, samples, sample );
-    mu_assert_int_eq( count, samples->count );
+    mu_assert_int_eq( 1, count );
+    mu_assert_int_eq( 1, samples->count );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 }
 
@@ -100,23 +102,23 @@ MU_TEST( gap_2 )
     mu_assert_int_eq( samples->count, 2 );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     free( sample );
 }
 
@@ -143,23 +145,23 @@ MU_TEST( gap_2_plus )
     mu_assert_int_eq( samples->count, 2 );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     free( sample );
 }
 
@@ -186,23 +188,23 @@ MU_TEST( gap_2_minus )
     mu_assert_int_eq( samples->count, 2 );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     free( sample );
 }
 
@@ -229,23 +231,23 @@ MU_TEST( gap_2_max )
     mu_assert_int_eq( samples->count, 2 );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     free( sample );
 }
 
@@ -272,33 +274,33 @@ MU_TEST( gap_2_fill_1 )
     mu_assert_int_eq( samples->count, 3 );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], lerp( o[0], o2[0], 1.0 / 2 ) );
-    mu_assert_double_eq( sample->origin[1], lerp( o[1], o2[1], 1.0 / 2 ) );
-    mu_assert_double_eq( sample->origin[2], lerp( o[2], o2[2], 1.0 / 2 ) );
-    mu_assert_double_eq( sample->point[0], lerp( p[0], p2[0], 1.0 / 2 ) );
-    mu_assert_double_eq( sample->point[1], lerp( p[1], p2[1], 1.0 / 2 ) );
-    mu_assert_double_eq( sample->point[2], lerp( p[2], p2[2], 1.0 / 2 ) );
-    mu_assert_double_eq( sample->timestamp, timestamp + sample_period );
+    mu_assert_double_eq( lerp( o[0], o2[0], 1.0 / 2 ), sample->origin[0] );
+    mu_assert_double_eq( lerp( o[1], o2[1], 1.0 / 2 ), sample->origin[1] );
+    mu_assert_double_eq( lerp( o[2], o2[2], 1.0 / 2 ), sample->origin[2] );
+    mu_assert_double_eq( lerp( p[0], p2[0], 1.0 / 2 ), sample->point[0] );
+    mu_assert_double_eq( lerp( p[1], p2[1], 1.0 / 2 ), sample->point[1] );
+    mu_assert_double_eq( lerp( p[2], p2[2], 1.0 / 2 ), sample->point[2] );
+    mu_assert_double_eq( timestamp + sample_period, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     free( sample );
 }
 
@@ -325,43 +327,43 @@ MU_TEST( gap_2_fill_2 )
     mu_assert_int_eq( samples->count, 4 );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], lerp( o[0], o2[0], 1.0 / 3 ) );
-    mu_assert_double_eq( sample->origin[1], lerp( o[1], o2[1], 1.0 / 3 ) );
-    mu_assert_double_eq( sample->origin[2], lerp( o[2], o2[2], 1.0 / 3 ) );
-    mu_assert_double_eq( sample->point[0], lerp( p[0], p2[0], 1.0 / 3 ) );
-    mu_assert_double_eq( sample->point[1], lerp( p[1], p2[1], 1.0 / 3 ) );
-    mu_assert_double_eq( sample->point[2], lerp( p[2], p2[2], 1.0 / 3 ) );
-    mu_assert_double_eq( sample->timestamp, timestamp + sample_period );
+    mu_assert_double_eq( lerp( o[0], o2[0], 1.0 / 3 ), sample->origin[0] );
+    mu_assert_double_eq( lerp( o[1], o2[1], 1.0 / 3 ), sample->origin[1] );
+    mu_assert_double_eq( lerp( o[2], o2[2], 1.0 / 3 ), sample->origin[2] );
+    mu_assert_double_eq( lerp( p[0], p2[0], 1.0 / 3 ), sample->point[0] );
+    mu_assert_double_eq( lerp( p[1], p2[1], 1.0 / 3 ), sample->point[1] );
+    mu_assert_double_eq( lerp( p[2], p2[2], 1.0 / 3 ), sample->point[2] );
+    mu_assert_double_eq( timestamp + sample_period, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], lerp( o[0], o2[0], 2.0 / 3 ) );
-    mu_assert_double_eq( sample->origin[1], lerp( o[1], o2[1], 2.0 / 3 ) );
-    mu_assert_double_eq( sample->origin[2], lerp( o[2], o2[2], 2.0 / 3 ) );
-    mu_assert_double_eq( sample->point[0], lerp( p[0], p2[0], 2.0 / 3 ) );
-    mu_assert_double_eq( sample->point[1], lerp( p[1], p2[1], 2.0 / 3 ) );
-    mu_assert_double_eq( sample->point[2], lerp( p[2], p2[2], 2.0 / 3 ) );
-    mu_assert_double_eq( sample->timestamp, timestamp + sample_period );
+    mu_assert_double_eq( lerp( o[0], o2[0], 2.0 / 3 ), sample->origin[0] );
+    mu_assert_double_eq( lerp( o[1], o2[1], 2.0 / 3 ), sample->origin[1] );
+    mu_assert_double_eq( lerp( o[2], o2[2], 2.0 / 3 ), sample->origin[2] );
+    mu_assert_double_eq( lerp( p[0], p2[0], 2.0 / 3 ), sample->point[0] );
+    mu_assert_double_eq( lerp( p[1], p2[1], 2.0 / 3 ), sample->point[1] );
+    mu_assert_double_eq( lerp( p[2], p2[2], 2.0 / 3 ), sample->point[2] );
+    mu_assert_double_eq( timestamp + 2 * sample_period, sample->timestamp );
     free( sample );
 
     gac_queue_pop( samples, ( void** )&sample );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     free( sample );
 }
 
@@ -376,23 +378,16 @@ void gap_run()
     MU_RUN_TEST( gap_2_fill_2 );
 }
 
-MU_TEST_SUITE( gap_stack_suite )
+MU_TEST_SUITE( gap_suite )
 {
-    MU_SUITE_CONFIGURE( &gap_stack_setup, &gap_teardown );
-    gap_run();
-}
-
-MU_TEST_SUITE( gap_heap_suite )
-{
-    MU_SUITE_CONFIGURE( &gap_heap_setup, &gap_teardown );
+    MU_SUITE_CONFIGURE( &gap_setup, &gap_teardown );
     gap_run();
 }
 
 int main()
 {
     MU_RUN_SUITE( gap_init_suite );
-    MU_RUN_SUITE( gap_stack_suite );
-    MU_RUN_SUITE( gap_heap_suite );
+    MU_RUN_SUITE( gap_suite );
     MU_REPORT();
     return MU_EXIT_CODE;
 }
