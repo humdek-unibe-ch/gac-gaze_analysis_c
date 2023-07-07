@@ -1,3 +1,6 @@
+/**
+ * @file gac.h
+ */
 
 #ifndef GAC_H
 #define GAC_H
@@ -6,19 +9,32 @@
 #include <cglm/cglm.h>
 #include <sys/time.h>
 
+/** ::gac_s */
 typedef struct gac_s gac_t;
+/** ::gac_filter_fixation_s */
 typedef struct gac_filter_fixation_s gac_filter_fixation_t;
+/** ::gac_filter_gap_s */
 typedef struct gac_filter_gap_s gac_filter_gap_t;
+/** ::gac_filter_noise_s */
 typedef struct gac_filter_noise_s gac_filter_noise_t;
+/** ::gac_filter_saccade_s */
 typedef struct gac_filter_saccade_s gac_filter_saccade_t;
+/** ::gac_filter_parameter_s */
 typedef struct gac_filter_parameter_s gac_filter_parameter_t;
+/** ::gac_fixation_s */
 typedef struct gac_fixation_s gac_fixation_t;
+/** ::gac_saccade_s */
 typedef struct gac_saccade_s gac_saccade_t;
+/** ::gac_sample_s */
 typedef struct gac_sample_s gac_sample_t;
+/** ::gac_queue_s */
 typedef struct gac_queue_s gac_queue_t;
+/** ::gac_queue_item_s */
 typedef struct gac_queue_item_s gac_queue_item_t;
 
+/** #gac_filter_noise_type_e */
 typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
+/** #gac_fixation_step_action_e */
 typedef enum gac_fixation_step_action_e gac_fixation_step_action_t;
 
 /**
@@ -32,6 +48,9 @@ enum gac_filter_noise_type_e
     GAC_FILTER_NOISE_TYPE_MEDIAN,
 };
 
+/**
+ * Actions to perform on the fixation sample window after fixation step.
+ */
 enum gac_fixation_step_action_e
 {
     GAC_FIXATION_STEP_ACTION_SHRINK,
@@ -44,6 +63,7 @@ enum gac_fixation_step_action_e
  */
 struct gac_sample_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The gaze point. */
     vec3 point;
@@ -58,6 +78,7 @@ struct gac_sample_s
  */
 struct gac_fixation_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The fixation gaze point */
     vec3 point;
@@ -72,6 +93,7 @@ struct gac_fixation_s
  */
 struct gac_saccade_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The start point of the saccade */
     vec3 point_start;
@@ -88,6 +110,7 @@ struct gac_saccade_s
  */
 struct gac_queue_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** A pointer to the head of the queue to read from. */
     gac_queue_item_t* tail;
@@ -119,6 +142,7 @@ struct gac_queue_item_s
  */
 struct gac_filter_fixation_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The pre-computed dispersion threshold at unit distance */
     double normalized_dispersion_threshold;
@@ -139,6 +163,7 @@ struct gac_filter_fixation_s
  */
 struct gac_filter_saccade_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The velocity threshold */
     float velocity_threshold;
@@ -155,6 +180,7 @@ struct gac_filter_saccade_s
  */
 struct gac_filter_noise_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** A flag indicating whether the noise filter is active or not */
     bool is_enabled;
@@ -171,6 +197,7 @@ struct gac_filter_noise_s
  */
 struct gac_filter_gap_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** A flag indicating whether the filter is active or not */
     bool is_enabled;
@@ -185,6 +212,7 @@ struct gac_filter_gap_s
  */
 struct gac_filter_parameter_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The gap filter parameter */
     struct {
@@ -226,6 +254,7 @@ struct gac_filter_parameter_s
  */
 struct gac_s
 {
+    /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The sample queue */
     gac_queue_t samples;
@@ -320,7 +349,7 @@ bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
  *
  * @param dispersion_threshold
  *  The dispersion thresholad in degrees.
- * @apram duratio_threshold
+ * @param duration_threshold
  *  The duration threshold in milliseconds.
  * @return
  *  The allocated fixation filter structure or NULL on failure.
@@ -343,7 +372,7 @@ void gac_filter_fixation_destroy( gac_filter_fixation_t* filter );
  *  The filter structure to initialise.
  * @param dispersion_threshold
  *  The dispersion thresholad in degrees.
- * @apram duratio_threshold
+ * @param duration_threshold
  *  The duration threshold in milliseconds.
  * @return
  *  True on success, false on failure.
@@ -515,7 +544,7 @@ bool gac_filter_saccade( gac_filter_saccade_t* filter, gac_sample_t* sample,
 /**
  * Allocate a new saccade filter structure on the heap. This needs to be freed.
  *
- * @param velocity_thresold
+ * @param velocity_threshold
  *  The velocity threshold in degrees per second.
  * @return
  *  A pointer to the allocated filter structure or NUll on failure.
@@ -535,7 +564,7 @@ void gac_filter_saccade_destroy( gac_filter_saccade_t* filter );
  *
  * @param filter
  *  A pointer to the filter structure to initialise.
- * @param velocity_thresold
+ * @param velocity_threshold
  *  The velocity threshold in degrees per second.
  * @return
  *  True on success, false on failure.
@@ -822,7 +851,7 @@ bool gac_sample_window_cleanup( gac_t* h );
 
 /**
  * The fixation detection algorithm I-DT. This acts on the sample window managed
- * by the functions gac_sample_add() and gac_sample_cleanup().
+ * by the functions gac_sample_window_update() and gac_sample_window_cleanup().
  *
  * @param h
  *  A pointer to the gaze analysis handler.
@@ -836,7 +865,7 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation );
 
 /**
  * The saccade detection algorithm I-VT. This acts on the sample window managed
- * by the functions gac_sample_add() and gac_sample_cleanup().
+ * by the functions gac_sample_window_update() and gac_sample_window_cleanup().
  *
  * @param h
  *  A pointer to the gaze analysis handler.
