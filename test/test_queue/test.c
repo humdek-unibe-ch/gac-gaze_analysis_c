@@ -27,13 +27,6 @@ static double vals[16] = {
 static unsigned int push_idx = 0;
 static unsigned int pop_idx = 0;
 
-void heap_setup()
-{
-    q_heap = gac_queue_create( 0 );
-    gac_queue_set_rm_handler( q_heap, free );
-    q = q_heap;
-}
-
 void teardown()
 {
     gac_queue_destroy( q );
@@ -44,7 +37,7 @@ void teardown()
     pop_idx = 0;
 }
 
-void stack_setup()
+void setup()
 {
     gac_queue_init( &q_stack, 0 );
     gac_queue_set_rm_handler( &q_stack, free );
@@ -62,8 +55,8 @@ void push()
     {
         length++;
     }
-    mu_check( q->length == length );
-    mu_check( q->count == count );
+    mu_assert_int_eq( length, q->length );
+    mu_assert_int_eq( count, q->count );
 }
 
 void pop()
@@ -71,9 +64,9 @@ void pop()
     void* x;
     gac_queue_pop( q, &x );
     count--;
-    mu_check( q->length == length );
-    mu_check( q->count == count );
-    mu_check( *( double* )x == vals[pop_idx] );
+    mu_assert_int_eq( length, q->length );
+    mu_assert_int_eq( count, q->count );
+    mu_assert_double_eq( vals[pop_idx], *( double* )x );
     pop_idx++;
     free( x );
 }
@@ -82,8 +75,8 @@ void rm()
 {
     gac_queue_remove( q );
     count--;
-    mu_check( q->length == length );
-    mu_check( q->count == count );
+    mu_assert_int_eq( length, q->length );
+    mu_assert_int_eq( count, q->count );
     pop_idx++;
 }
 
@@ -91,8 +84,8 @@ void grow()
 {
     gac_queue_grow( q, 5 );
     length += 5;
-    mu_check( q->length == length );
-    mu_check( q->count == count );
+    mu_assert_int_eq( length, q->length );
+    mu_assert_int_eq( count, q->count );
 }
 
 MU_TEST( push_1 )
@@ -288,24 +281,32 @@ MU_TEST( init_0 )
 {
     gac_queue_init( &q_stack, 0 );
     q = &q_stack;
-    mu_check( q->length == 0 );
-    mu_check( q->count == 0 );
+    mu_assert_int_eq( 0, q->length );
+    mu_assert_int_eq( 0, q->count );
 }
 
 MU_TEST( init_1 )
 {
     gac_queue_init( &q_stack, 1 );
     q = &q_stack;
-    mu_check( q->length == 1 );
-    mu_check( q->count == 0 );
+    mu_assert_int_eq( 1, q->length );
+    mu_assert_int_eq( 0, q->count );
 }
 
 MU_TEST( init_n )
 {
     gac_queue_init( &q_stack, 5 );
     q = &q_stack;
-    mu_check( q->length == 5 );
-    mu_check( q->count == 0 );
+    mu_assert_int_eq( 5, q->length );
+    mu_assert_int_eq( 0, q->count );
+}
+
+MU_TEST( init_heap )
+{
+    q_heap = gac_queue_create( 0 );
+    q = q_heap;
+    mu_assert_int_eq( 0, q->length );
+    mu_assert_int_eq( 0, q->count );
 }
 
 void testcases()
@@ -330,31 +331,25 @@ void testcases()
     MU_RUN_TEST( grow_n_push_np2_pop_np2 );
 }
 
-MU_TEST_SUITE(init_suite)
+MU_TEST_SUITE(init_queue_suite)
 {
     MU_SUITE_CONFIGURE( NULL, &teardown );
+    MU_RUN_TEST( init_heap );
     MU_RUN_TEST( init_0 );
     MU_RUN_TEST( init_1 );
     MU_RUN_TEST( init_n );
 }
 
-MU_TEST_SUITE(heap_suite)
+MU_TEST_SUITE(queue_suite)
 {
-    MU_SUITE_CONFIGURE( &heap_setup, &teardown );
-    testcases();
-}
-
-MU_TEST_SUITE(stack_suite)
-{
-    MU_SUITE_CONFIGURE( &heap_setup, &teardown );
+    MU_SUITE_CONFIGURE( &setup, &teardown );
     testcases();
 }
 
 int main()
 {
-    MU_RUN_SUITE( init_suite );
-    MU_RUN_SUITE( heap_suite );
-    MU_RUN_SUITE( stack_suite );
+    MU_RUN_SUITE( init_queue_suite );
+    MU_RUN_SUITE( queue_suite );
     MU_REPORT();
     return MU_EXIT_CODE;
 }
