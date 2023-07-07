@@ -8,21 +8,27 @@ static gac_filter_noise_t noise_stack;
 static gac_filter_noise_t* noise_heap;
 static gac_filter_noise_t* noise;
 
-void noise_stack_setup()
+float avg3( float a, float b, float c )
+{
+    return ( a + b + c ) / 3.0F;
+}
+
+void noise_setup()
 {
     gac_filter_noise_init( &noise_stack, GAC_FILTER_NOISE_TYPE_AVERAGE, 1 );
     noise = &noise_stack;
 }
 
-void noise_heap_setup()
-{
-    noise_heap = gac_filter_noise_create( GAC_FILTER_NOISE_TYPE_AVERAGE, 1 );
-    noise = noise_heap;
-}
-
 void noise_teardown()
 {
     gac_filter_noise_destroy( noise );
+}
+
+MU_TEST( noise_init_heap )
+{
+    noise_heap = gac_filter_noise_create( GAC_FILTER_NOISE_TYPE_AVERAGE, 1 );
+    noise = noise_heap;
+    mu_check( noise->window.length == 3 );
 }
 
 MU_TEST( noise_init_1 )
@@ -42,6 +48,7 @@ MU_TEST( noise_init_n )
 MU_TEST_SUITE( noise_init_suite )
 {
     MU_SUITE_CONFIGURE( NULL, &noise_teardown );
+    MU_RUN_TEST( noise_init_heap );
     MU_RUN_TEST( noise_init_1 );
     MU_RUN_TEST( noise_init_n );
 }
@@ -53,13 +60,13 @@ MU_TEST( noise_1 )
     float p[3] = { 0.4, 0.5, 0.6 };
     gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
     sample = gac_filter_noise( noise, sample );
-    mu_check( sample->origin[0] == o[0] );
-    mu_check( sample->origin[1] == o[1] );
-    mu_check( sample->origin[2] == o[2] );
-    mu_check( sample->point[0] == p[0] );
-    mu_check( sample->point[1] == p[1] );
-    mu_check( sample->point[2] == p[2] );
-    mu_check( sample->timestamp == timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     gac_sample_destroy( sample );
 }
 
@@ -76,23 +83,23 @@ MU_TEST( noise_2 )
     gac_sample_t* sample2 = gac_sample_create( &o2, &p2, timestamp2 );
 
     sample = gac_filter_noise( noise, sample );
-    mu_check( sample->origin[0] == o[0] );
-    mu_check( sample->origin[1] == o[1] );
-    mu_check( sample->origin[2] == o[2] );
-    mu_check( sample->point[0] == p[0] );
-    mu_check( sample->point[1] == p[1] );
-    mu_check( sample->point[2] == p[2] );
-    mu_check( sample->timestamp == timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     gac_sample_destroy( sample );
 
     sample = gac_filter_noise( noise, sample2 );
-    mu_check( sample->origin[0] == o2[0] );
-    mu_check( sample->origin[1] == o2[1] );
-    mu_check( sample->origin[2] == o2[2] );
-    mu_check( sample->point[0] == p2[0] );
-    mu_check( sample->point[1] == p2[1] );
-    mu_check( sample->point[2] == p2[2] );
-    mu_check( sample->timestamp == timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     gac_sample_destroy( sample );
 }
 
@@ -114,33 +121,33 @@ MU_TEST( noise_3 )
     gac_sample_t* sample3 = gac_sample_create( &o3, &p3, timestamp3 );
 
     sample = gac_filter_noise( noise, sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     gac_sample_destroy( sample );
 
     sample = gac_filter_noise( noise, sample2 );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     gac_sample_destroy( sample );
 
     sample = gac_filter_noise( noise, sample3 );
-    mu_assert_double_eq( sample->origin[0], ( o[0] + o2[0] + o3[0] ) / 3.0F );
-    mu_assert_double_eq( sample->origin[1], ( o[1] + o2[1] + o3[1] ) / 3.0F );
-    mu_assert_double_eq( sample->origin[2], ( o[2] + o2[2] + o3[2] ) / 3.0F );
-    mu_assert_double_eq( sample->point[0], ( p[0] + p2[0] + p3[0] ) / 3.0F );
-    mu_assert_double_eq( sample->point[1], ( p[1] + p2[1] + p3[1] ) / 3.0F );
-    mu_assert_double_eq( sample->point[2], ( p[2] + p2[2] + p3[2] ) / 3.0F );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( avg3( o[0], o2[0], o3[0] ), sample->origin[0] );
+    mu_assert_double_eq( avg3( o[1], o2[1], o3[1] ), sample->origin[1] );
+    mu_assert_double_eq( avg3( o[2], o2[2], o3[2] ), sample->origin[2] );
+    mu_assert_double_eq( avg3( p[0], p2[0], p3[0] ), sample->point[0] );
+    mu_assert_double_eq( avg3( p[1], p2[1], p3[1] ), sample->point[1] );
+    mu_assert_double_eq( avg3( p[2], p2[2], p3[2] ), sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     gac_sample_destroy( sample );
 }
 
@@ -167,43 +174,43 @@ MU_TEST( noise_4 )
     gac_sample_t* sample4 = gac_sample_create( &o4, &p4, timestamp4 );
 
     sample = gac_filter_noise( noise, sample );
-    mu_assert_double_eq( sample->origin[0], o[0] );
-    mu_assert_double_eq( sample->origin[1], o[1] );
-    mu_assert_double_eq( sample->origin[2], o[2] );
-    mu_assert_double_eq( sample->point[0], p[0] );
-    mu_assert_double_eq( sample->point[1], p[1] );
-    mu_assert_double_eq( sample->point[2], p[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp );
+    mu_assert_double_eq( o[0], sample->origin[0] );
+    mu_assert_double_eq( o[1], sample->origin[1] );
+    mu_assert_double_eq( o[2], sample->origin[2] );
+    mu_assert_double_eq( p[0], sample->point[0] );
+    mu_assert_double_eq( p[1], sample->point[1] );
+    mu_assert_double_eq( p[2], sample->point[2] );
+    mu_assert_double_eq( timestamp, sample->timestamp );
     gac_sample_destroy( sample );
 
     sample = gac_filter_noise( noise, sample2 );
-    mu_assert_double_eq( sample->origin[0], o2[0] );
-    mu_assert_double_eq( sample->origin[1], o2[1] );
-    mu_assert_double_eq( sample->origin[2], o2[2] );
-    mu_assert_double_eq( sample->point[0], p2[0] );
-    mu_assert_double_eq( sample->point[1], p2[1] );
-    mu_assert_double_eq( sample->point[2], p2[2] );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( o2[0], sample->origin[0] );
+    mu_assert_double_eq( o2[1], sample->origin[1] );
+    mu_assert_double_eq( o2[2], sample->origin[2] );
+    mu_assert_double_eq( p2[0], sample->point[0] );
+    mu_assert_double_eq( p2[1], sample->point[1] );
+    mu_assert_double_eq( p2[2], sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     gac_sample_destroy( sample );
 
     sample = gac_filter_noise( noise, sample3 );
-    mu_assert_double_eq( sample->origin[0], ( o[0] + o2[0] + o3[0] ) / 3.0F );
-    mu_assert_double_eq( sample->origin[1], ( o[1] + o2[1] + o3[1] ) / 3.0F );
-    mu_assert_double_eq( sample->origin[2], ( o[2] + o2[2] + o3[2] ) / 3.0F );
-    mu_assert_double_eq( sample->point[0], ( p[0] + p2[0] + p3[0] ) / 3.0F );
-    mu_assert_double_eq( sample->point[1], ( p[1] + p2[1] + p3[1] ) / 3.0F );
-    mu_assert_double_eq( sample->point[2], ( p[2] + p2[2] + p3[2] ) / 3.0F );
-    mu_assert_double_eq( sample->timestamp, timestamp2 );
+    mu_assert_double_eq( avg3( o[0], o2[0], o3[0] ), sample->origin[0] );
+    mu_assert_double_eq( avg3( o[1], o2[1], o3[1] ), sample->origin[1] );
+    mu_assert_double_eq( avg3( o[2], o2[2], o3[2] ), sample->origin[2] );
+    mu_assert_double_eq( avg3( p[0], p2[0], p3[0] ), sample->point[0] );
+    mu_assert_double_eq( avg3( p[1], p2[1], p3[1] ), sample->point[1] );
+    mu_assert_double_eq( avg3( p[2], p2[2], p3[2] ), sample->point[2] );
+    mu_assert_double_eq( timestamp2, sample->timestamp );
     gac_sample_destroy( sample );
 
     sample = gac_filter_noise( noise, sample4 );
-    mu_assert_double_eq( sample->origin[0], ( o4[0] + o2[0] + o3[0] ) / 3.0F );
-    mu_assert_double_eq( sample->origin[1], ( o4[1] + o2[1] + o3[1] ) / 3.0F );
-    mu_assert_double_eq( sample->origin[2], ( o4[2] + o2[2] + o3[2] ) / 3.0F );
-    mu_assert_double_eq( sample->point[0], ( p4[0] + p2[0] + p3[0] ) / 3.0F );
-    mu_assert_double_eq( sample->point[1], ( p4[1] + p2[1] + p3[1] ) / 3.0F );
-    mu_assert_double_eq( sample->point[2], ( p4[2] + p2[2] + p3[2] ) / 3.0F );
-    mu_assert_double_eq( sample->timestamp, timestamp3 );
+    mu_assert_double_eq( avg3( o4[0], o2[0], o3[0] ), sample->origin[0] );
+    mu_assert_double_eq( avg3( o4[1], o2[1], o3[1] ), sample->origin[1] );
+    mu_assert_double_eq( avg3( o4[2], o2[2], o3[2] ), sample->origin[2] );
+    mu_assert_double_eq( avg3( p4[0], p2[0], p3[0] ), sample->point[0] );
+    mu_assert_double_eq( avg3( p4[1], p2[1], p3[1] ), sample->point[1] );
+    mu_assert_double_eq( avg3( p4[2], p2[2], p3[2] ), sample->point[2] );
+    mu_assert_double_eq( timestamp3, sample->timestamp );
     gac_sample_destroy( sample );
 }
 
@@ -215,23 +222,16 @@ void noise_run()
     MU_RUN_TEST( noise_4 );
 }
 
-MU_TEST_SUITE( noise_stack_suite )
+MU_TEST_SUITE( noise_suite )
 {
-    MU_SUITE_CONFIGURE( &noise_stack_setup, &noise_teardown );
-    noise_run();
-}
-
-MU_TEST_SUITE( noise_heap_suite )
-{
-    MU_SUITE_CONFIGURE( &noise_heap_setup, &noise_teardown );
+    MU_SUITE_CONFIGURE( &noise_setup, &noise_teardown );
     noise_run();
 }
 
 int main()
 {
     MU_RUN_SUITE( noise_init_suite );
-    MU_RUN_SUITE( noise_stack_suite );
-    MU_RUN_SUITE( noise_heap_suite );
+    MU_RUN_SUITE( noise_suite );
     MU_REPORT();
     return MU_EXIT_CODE;
 }
