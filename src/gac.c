@@ -487,6 +487,7 @@ void gac_filter_saccade_destroy( gac_filter_saccade_t* filter )
         return;
     }
 
+    gac_queue_destroy( &filter->window );
     if( filter->is_heap )
     {
         free( filter );
@@ -506,6 +507,7 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
     filter->is_collecting = false;
     filter->velocity_threshold = velocity_threshold;
     gac_queue_init( &filter->window, 0 );
+    gac_queue_set_rm_handler( &filter->window, gac_sample_destroy );
 
     return true;
 }
