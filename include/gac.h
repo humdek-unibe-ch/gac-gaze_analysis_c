@@ -889,10 +889,8 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade );
  *  The z coordinate of the gaze point.
  * @param timestamp
  *  The timestamp of the sample.
- * @return
- *  True on success, false on failure.
  */
-uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
+void gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp );
 
 // SAMPLES /////////////////////////////////////////////////////////////////////

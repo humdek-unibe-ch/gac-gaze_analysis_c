@@ -152,7 +152,6 @@ void gac_filter_fixation_destroy( gac_filter_fixation_t* filter )
     }
 
     gac_queue_destroy( &filter->window );
-
     if( filter->is_heap )
     {
         free( filter );
@@ -1063,7 +1062,7 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
-uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
+void gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp )
 {
     vec3 point;
@@ -1079,7 +1078,7 @@ uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
     sample = gac_sample_create( &origin, &point, timestamp );
 
     sample = gac_filter_noise( &h->noise, sample );
-    return gac_filter_gap( &h->gap, &h->samples, sample );
+    gac_filter_gap( &h->gap, &h->samples, sample );
 }
 
 /******************************************************************************/
