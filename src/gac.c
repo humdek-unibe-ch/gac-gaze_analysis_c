@@ -108,17 +108,17 @@ bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
         gac_fixation_t* fixation )
 {
     bool res;
-    gac_fixation_step_action_t action;
+    gac_filter_step_action_t action;
 
     gac_queue_push( &filter->window, sample );
     res = gac_filter_fixation_step( filter, sample, fixation, &action );
 
     switch( action )
     {
-        case GAC_FIXATION_STEP_ACTION_SHRINK:
+        case GAC_FILTER_STEP_ACTION_SHRINK:
             gac_queue_remove( &filter->window );
             break;
-        case GAC_FIXATION_STEP_ACTION_CLEAR:
+        case GAC_FILTER_STEP_ACTION_CLEAR:
             gac_queue_clear( &filter->window );
             break;
         default:
@@ -185,7 +185,7 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
 /******************************************************************************/
 bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         gac_sample_t* sample, gac_fixation_t* fixation,
-        gac_fixation_step_action_t* action )
+        gac_filter_step_action_t* action )
 {
     double duration;
     float dispersion, dispersion_threshold, distance;
@@ -195,7 +195,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     gac_queue_t* window;
     if( action != NULL )
     {
-        *action = GAC_FIXATION_STEP_ACTION_NONE;
+        *action = GAC_FILTER_STEP_ACTION_NONE;
     }
 
     if( fixation == NULL || sample == NULL || filter == NULL )
@@ -233,13 +233,13 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
             filter->is_collecting = false;
             if( action != NULL )
             {
-                *action = GAC_FIXATION_STEP_ACTION_CLEAR;
+                *action = GAC_FILTER_STEP_ACTION_CLEAR;
             }
             return true;
         }
-        else
+        else if( action != NULL )
         {
-            *action = GAC_FIXATION_STEP_ACTION_SHRINK;
+            *action = GAC_FILTER_STEP_ACTION_SHRINK;
         }
     }
 
@@ -447,12 +447,21 @@ bool gac_filter_saccade( gac_filter_saccade_t* filter, gac_sample_t* sample,
         gac_saccade_t* saccade )
 {
     bool res;
+    gac_filter_step_action_t action;
 
     gac_queue_push( &filter->window, sample );
-    res = gac_filter_saccade_step( filter, sample, saccade );
-    if( res == true )
+    res = gac_filter_saccade_step( filter, sample, saccade, &action );
+
+    switch( action )
     {
-        gac_queue_clear( &filter->window );
+        case GAC_FILTER_STEP_ACTION_CLEAR:
+            gac_queue_clear( &filter->window );
+            break;
+        case GAC_FILTER_STEP_ACTION_SHRINK:
+            gac_queue_remove( &filter->window );
+            break;
+        default:
+            break;
     }
 
     return res;
@@ -497,7 +506,6 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
     filter->is_heap = false;
     filter->is_collecting = false;
     filter->velocity_threshold = velocity_threshold;
-    filter->duration = 0;
     gac_queue_init( &filter->window, 0 );
 
     return true;
@@ -505,7 +513,7 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
 
 /******************************************************************************/
 bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
-        gac_saccade_t* saccade )
+        gac_saccade_t* saccade, gac_filter_step_action_t* action )
 {
     gac_sample_t* s1;
     gac_sample_t* s2;
@@ -515,6 +523,10 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
     float angle;
     float velocity;
     gac_queue_t* window;
+    if( action != NULL )
+    {
+        *action = GAC_FILTER_STEP_ACTION_NONE;
+    }
 
     if( filter == NULL || saccade == NULL || sample == NULL )
     {
@@ -529,13 +541,13 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
 
     s2 = window->tail->data;
     s1 = window->tail->next->data;
-    duration = ( s1->timestamp - s2->timestamp ) * 1000;
+    duration = ( s2->timestamp - s1->timestamp );
 
     glm_vec3_sub( s1->point, s1->origin, v1 );
     glm_vec3_sub( s2->point, s2->origin, v2 );
 
     angle = glm_vec3_angle( v1, v2 ) * 180 / M_PI;
-    velocity =  angle / duration;
+    velocity =  angle / ( duration / 1000 );
 
     if( velocity > filter->velocity_threshold )
     {
@@ -544,7 +556,6 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
             // saccade start
             filter->is_collecting = true;
         }
-        filter->duration = duration;
     }
     else if( filter->is_collecting )
     {
@@ -552,9 +563,17 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
         s2 = s1;
         s1 = window->head->data;
         gac_saccade_init( saccade, &s1->point, &s2->point,
-                s1->timestamp, filter->duration );
+                s1->timestamp, s2->timestamp - s1->timestamp );
         filter->is_collecting = false;
+        if( action != NULL )
+        {
+            *action = GAC_FILTER_STEP_ACTION_CLEAR;
+        }
         return true;
+    }
+    else if( action != NULL )
+    {
+        *action = GAC_FILTER_STEP_ACTION_SHRINK;
     }
 
     return false;
@@ -956,7 +975,7 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 {
     gac_sample_t* sample;
     gac_queue_t* window;
-    gac_fixation_step_action_t action;
+    gac_filter_step_action_t action;
     bool res;
 
     if( fixation == NULL || h == NULL )
@@ -982,11 +1001,11 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 
     switch( action )
     {
-        case GAC_FIXATION_STEP_ACTION_SHRINK:
+        case GAC_FILTER_STEP_ACTION_SHRINK:
             window->count--;
             window->head = window->head->prev;
             break;
-        case GAC_FIXATION_STEP_ACTION_CLEAR:
+        case GAC_FILTER_STEP_ACTION_CLEAR:
             window->count = 0;
             window->head = window->tail;
             break;
@@ -1000,6 +1019,7 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 /******************************************************************************/
 bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 {
+    gac_filter_step_action_t action;
     gac_queue_t* window;
     gac_sample_t* sample;
     bool res;
@@ -1023,12 +1043,20 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 
     sample = window->tail->data;
 
-    res = gac_filter_saccade_step( &h->saccade, sample, saccade );
+    res = gac_filter_saccade_step( &h->saccade, sample, saccade, &action );
 
-    if( res == true )
+    switch( action )
     {
-        window->count = 0;
-        window->head = window->tail;
+        case GAC_FILTER_STEP_ACTION_CLEAR:
+            window->count = 0;
+            window->head = window->tail;
+            break;
+        case GAC_FILTER_STEP_ACTION_SHRINK:
+            window->count--;
+            window->head = window->head->prev;
+            break;
+        default:
+            break;
     }
 
     return res;

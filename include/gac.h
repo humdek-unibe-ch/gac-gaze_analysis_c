@@ -23,8 +23,8 @@ typedef struct gac_queue_item_s gac_queue_item_t;
 
 /** #gac_filter_noise_type_e */
 typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
-/** #gac_fixation_step_action_e */
-typedef enum gac_fixation_step_action_e gac_fixation_step_action_t;
+/** #gac_filter_step_action_e */
+typedef enum gac_filter_step_action_e gac_filter_step_action_t;
 
 /**
  * The available noise filter types
@@ -40,11 +40,11 @@ enum gac_filter_noise_type_e
 /**
  * Actions to perform on the fixation sample window after fixation step.
  */
-enum gac_fixation_step_action_e
+enum gac_filter_step_action_e
 {
-    GAC_FIXATION_STEP_ACTION_SHRINK,
-    GAC_FIXATION_STEP_ACTION_CLEAR,
-    GAC_FIXATION_STEP_ACTION_NONE
+    GAC_FILTER_STEP_ACTION_SHRINK,
+    GAC_FILTER_STEP_ACTION_CLEAR,
+    GAC_FILTER_STEP_ACTION_NONE
 };
 
 /**
@@ -160,8 +160,6 @@ struct gac_filter_saccade_s
     bool is_collecting;
     /** A pointer to the sample queue */
     gac_queue_t window;
-    /** The saccade duration */
-    double duration;
 };
 
 /**
@@ -383,13 +381,13 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
  *  function returns true.
  * @param action
  *  An action code indicating to the parent function which action to perform
- *  an the sample window.
+ *  on the sample window.
  * @return
  *  True if a fixation was detected, false otherwise.
  */
 bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         gac_sample_t* sample, gac_fixation_t* fixation,
-        gac_fixation_step_action_t* action );
+        gac_filter_step_action_t* action );
 
 /**
  * Fill in gaps between the last sample and the current sample if any.
@@ -573,11 +571,14 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
  * @param saccade
  *  A location where a detected saccade is stored. This is only valid if the
  *  function returns true.
+ * @param action
+ *  An action code indicating to the parent function which action to perform
+ *  on the sample window.
  * @return
  *  True if a saccade was detected, false otherwise.
  */
 bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
-        gac_saccade_t* saccade );
+        gac_saccade_t* saccade, gac_filter_step_action_t* action );
 
 // FIXATION ////////////////////////////////////////////////////////////////////
 
