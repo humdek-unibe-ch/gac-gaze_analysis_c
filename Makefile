@@ -10,6 +10,8 @@ LOC_OBJ_DIR = $(LOC_BUILD_DIR)/obj
 LOC_LIB_DIR = $(LOC_BUILD_DIR)/lib
 CREATE_DIR = $(LOC_OBJ_DIR) $(LOC_LIB_DIR)
 
+TEST_DIRS = $(wildcard ./test/test_*/.)
+
 LIB_VERSION = $(VMAJ).$(VMIN)
 UPSTREAM_VERSION = $(LIB_VERSION).$(VREV)
 DEBIAN_REVISION = $(VDEB)
@@ -75,7 +77,7 @@ $(CGLM)/Makefile:
 $(CREATE_DIR):
 	mkdir -p $@
 
-.PHONY: clean install uninstall doc cglm-check cglm-clean
+.PHONY: clean install uninstall doc cglm-check cglm-clean test $(TEST_DIRS)
 
 install:
 
@@ -94,3 +96,7 @@ cglm-check:
 
 cglm-clean:
 	$(MAKE) clean -C $(CGLM)
+
+test: $(TEST_DIRS)
+$(TEST_DIRS):
+	$(MAKE) run -C $@
