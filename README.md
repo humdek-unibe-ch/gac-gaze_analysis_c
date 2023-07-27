@@ -40,5 +40,5 @@ if( res == true )
 
 At the end, destroy the gaze analysis handler:
 ```c
-gac_destroy( &h )
+gac_destroy( &h );
 ```
