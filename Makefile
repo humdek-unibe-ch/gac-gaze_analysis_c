@@ -11,6 +11,7 @@ LOC_LIB_DIR = $(LOC_BUILD_DIR)/lib
 CREATE_DIR = $(LOC_OBJ_DIR) $(LOC_LIB_DIR)
 
 TEST_DIRS = $(wildcard ./test/test_*/.)
+TESTS = $(wildcard ./test/test_*/test)
 
 LIB_VERSION = $(VMAJ).$(VMIN)
 UPSTREAM_VERSION = $(LIB_VERSION).$(VREV)
@@ -87,6 +88,7 @@ clean:
 	rm -rf $(LOC_LIB_DIR)
 	rm -rf $(LOC_OBJ_DIR)
 	rm -rf $(LOC_BUILD_DIR)
+	rm -f $(TESTS)
 
 doc:
 	doxygen .doxygen
