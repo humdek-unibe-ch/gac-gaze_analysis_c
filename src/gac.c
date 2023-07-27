@@ -207,10 +207,11 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     duration = sample->timestamp - first_sample->timestamp;
     if( duration >= filter->duration_threshold )
     {
-        gac_samples_dispersion( window, &dispersion, 0 );
-
-        gac_samples_average_origin( window, &origin, 0 );
-        gac_samples_average_point( window, &point, 0 );
+        // requires window count because the items might be managed by a parent
+        // window
+        gac_samples_dispersion( window, &dispersion, window->count );
+        gac_samples_average_origin( window, &origin, window->count );
+        gac_samples_average_point( window, &point, window->count );
         distance = glm_vec3_distance( origin, point );
         dispersion_threshold = distance * filter->normalized_dispersion_threshold;
 
@@ -258,12 +259,12 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
     vec3 origin;
     double factor;
 
-    if( !filter->is_enabled || sample == NULL )
+    if( sample == NULL )
     {
         return 0;
     }
 
-    if( samples->count == 0 )
+    if( !filter->is_enabled || samples->count == 0 )
     {
         gac_queue_push( samples, sample );
         return 1;
@@ -355,8 +356,7 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
 
     if( filter->window.count < filter->window.length )
     {
-        return gac_sample_create( &sample->origin, &sample->point,
-                sample->timestamp );
+        return NULL;
     }
 
     switch( filter->type )
@@ -542,7 +542,7 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
 
     s2 = window->tail->data;
     s1 = window->tail->next->data;
-    duration = ( s2->timestamp - s1->timestamp );
+    duration = s2->timestamp - s1->timestamp;
 
     glm_vec3_sub( s1->point, s1->origin, v1 );
     glm_vec3_sub( s2->point, s2->origin, v2 );
@@ -979,7 +979,7 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
     gac_filter_step_action_t action;
     bool res;
 
-    if( fixation == NULL || h == NULL )
+    if( fixation == NULL || h == NULL || h->samples.count == 0 )
     {
         return false;
     }
@@ -993,7 +993,10 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
     {
         window->tail = h->samples.head;
     }
-    window->tail = window->tail->prev;
+    if( window->tail->prev != NULL )
+    {
+        window->tail = window->tail->prev;
+    }
     window->count++;
 
     sample = window->tail->data;
@@ -1025,7 +1028,7 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
     gac_sample_t* sample;
     bool res;
 
-    if( h == NULL || saccade == NULL )
+    if( h == NULL || saccade == NULL || h->samples.count == 0 )
     {
         return false;
     }
@@ -1039,7 +1042,14 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
     {
         window->tail = h->samples.head;
     }
-    window->tail = window->tail->prev;
+    if( window->tail->prev != NULL )
+    {
+        window->tail = window->tail->prev;
+    }
+    if( window->count == 0 )
+    {
+        window->head = window->head->prev;
+    }
     window->count++;
 
     sample = window->tail->data;
@@ -1107,7 +1117,7 @@ bool gac_samples_average_point( gac_queue_t* samples, vec3* avg,
         i++;
         if( i == count )
         {
-            return true;
+            goto success;
         }
     }
 
@@ -1116,8 +1126,8 @@ bool gac_samples_average_point( gac_queue_t* samples, vec3* avg,
         return false;
     }
 
+success:
     glm_vec3_divs( *avg, samples->count, *avg );
-
     return true;
 }
 
@@ -1145,7 +1155,7 @@ bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
         i++;
         if( i == count )
         {
-            return true;
+            goto success;
         }
     }
 
@@ -1154,8 +1164,8 @@ bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
         return false;
     }
 
+success:
     glm_vec3_divs( *avg, samples->count, *avg );
-
     return true;
 }
 
@@ -1216,7 +1226,7 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
         i++;
         if( i == count )
         {
-            return true;
+            goto success;
         }
     }
 
@@ -1225,7 +1235,7 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
         return false;
     }
 
+success:
     *dispersion = max[0] - min[0] + max[1] - min[1] + max[2] - min[2];
-
     return true;
 }

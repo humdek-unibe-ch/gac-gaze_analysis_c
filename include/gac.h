@@ -413,6 +413,7 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
  *
  * @param max_gap_length
  *  The maximal gap length in milliseconds to fil-in. Larger gaps are ignored.
+ *  If set to 0 the filter is disabled.
  * @param sample_period
  *  The expected average sample period in milliseconds (1000 / sample_rate).
  * @return
@@ -436,6 +437,7 @@ void gac_filter_gap_destroy( gac_filter_gap_t* filter );
  *  A pointer to the struct to be initialised.
  * @param max_gap_length
  *  The maximal gap length in milliseconds to fil-in. Larger gaps are ignored.
+ *  If set to 0 the filter is disabled.
  * @param sample_period
  *  The expected average sample period in milliseconds (1000 / sample_rate).
  * @return
@@ -467,7 +469,7 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
  *  The noise filter type.
  * @param mid_idx
  *  The mid index of the window. This is used to compute the length of the
- *  window: window_length = mid_idx * 2 + 1.
+ *  window: window_length = mid_idx * 2 + 1. If set to 0 the filter is disabled.
  * @return
  *  A pointer to the allocated structure or NULL on failure.
  */
@@ -491,7 +493,7 @@ void gac_filter_noise_destroy( gac_filter_noise_t* filter );
  *  The noise filter type.
  * @param mid_idx
  *  The mid index of the window. This is used to compute the length of the
- *  window: window_length = mid_idx * 2 + 1.
+ *  window: window_length = mid_idx * 2 + 1. If set to 0 the filter is disabled.
  * @return
  *  True on success, false on failure.
  */
