@@ -44,13 +44,8 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     }
 
     h->is_heap = false;
-    h->parameter.fixation.dispersion_threshold = 0.5;
-    h->parameter.fixation.duration_threshold = 100;
-    h->parameter.saccade.velocity_threshold = 20;
-    h->parameter.noise.mid_idx = 1;
-    h->parameter.noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
-    h->parameter.gap.max_gap_length = 50;
-    h->parameter.gap.sample_period = 1000.0/60.0;
+    gac_get_filter_parameter_default( &h->parameter );
+
     if( parameter != NULL )
     {
         h->parameter.fixation.dispersion_threshold =
@@ -99,6 +94,25 @@ bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter )
     parameter->noise.type = h->parameter.noise.type;
     parameter->gap.max_gap_length = h->parameter.gap.max_gap_length;
     parameter->gap.sample_period = h->parameter.gap.sample_period;
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_get_filter_parameter_default( gac_filter_parameter_t* parameter )
+{
+    if( parameter == NULL )
+    {
+        return false;
+    }
+
+    parameter->fixation.dispersion_threshold = 0.5;
+    parameter->fixation.duration_threshold = 100;
+    parameter->saccade.velocity_threshold = 20;
+    parameter->noise.mid_idx = 1;
+    parameter->noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
+    parameter->gap.max_gap_length = 50;
+    parameter->gap.sample_period = 1000.0/60.0;
 
     return true;
 }

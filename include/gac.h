@@ -312,6 +312,16 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter );
  */
 bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter );
 
+/**
+ * Get the default filter parameter values.
+ *
+ * @param parameter
+ *  A location where the filter parameter values can be stored.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_get_filter_parameter_default( gac_filter_parameter_t* parameter );
+
 // FILTER //////////////////////////////////////////////////////////////////////
 
 /**
