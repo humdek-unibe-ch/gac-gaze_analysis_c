@@ -29,7 +29,7 @@ STATLIB = $(LOC_LIB_DIR)/$(LLIBNAME).a
 DYNLIB = $(LOC_LIB_DIR)/$(LLIBNAME).so
 
 SOURCES = $(wildcard $(LOC_SRC_DIR)/*.c)
-OBJECTS := $(patsubst $(LOC_SRC_DIR)/%.c, $(LOC_OBJ_DIR)/%.o, $(SOURCES))
+GAC_OBJECTS := $(patsubst $(LOC_SRC_DIR)/%.c, $(LOC_OBJ_DIR)/%.o, $(SOURCES))
 
 INCLUDES = $(LOC_INC_DIR)/*.h
 
@@ -55,10 +55,10 @@ all: directories $(STATLIB) $(DYNLIB)
 debug: CFLAGS += $(DEBUG_FLAGS)
 debug: all
 
-$(STATLIB): $(OBJECTS)
+$(STATLIB): $(GAC_OBJECTS)
 	ar -cq $@ $^
 
-$(DYNLIB): $(OBJECTS)
+$(DYNLIB): $(GAC_OBJECTS)
 	$(CC) -shared -Wl,-soname,$(SONAME) $^ -o $@ $(LINK_DIR) $(LINK_FILE)
 	ln -sf $(LLIBNAME).so $(LOC_LIB_DIR)/$(SONAME)
 
