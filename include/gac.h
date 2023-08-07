@@ -21,11 +21,6 @@ typedef struct gac_sample_s gac_sample_t;
 typedef struct gac_queue_s gac_queue_t;
 typedef struct gac_queue_item_s gac_queue_item_t;
 
-/** #gac_filter_noise_type_e */
-typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
-/** #gac_filter_step_action_e */
-typedef enum gac_filter_step_action_e gac_filter_step_action_t;
-
 /**
  * The available noise filter types
  */
@@ -46,6 +41,11 @@ enum gac_filter_step_action_e
     GAC_FILTER_STEP_ACTION_CLEAR,
     GAC_FILTER_STEP_ACTION_NONE
 };
+
+/** #gac_filter_noise_type_e */
+typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
+/** #gac_filter_step_action_e */
+typedef enum gac_filter_step_action_e gac_filter_step_action_t;
 
 /**
  * The gaze data sample.
