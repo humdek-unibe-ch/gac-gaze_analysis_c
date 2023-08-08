@@ -11,6 +11,9 @@ install cmake gcc python
 install syslog
 - `pacman -Sy msys2-runtime-devel`
 
+install autogen
+- `pacman -Sy autogen autoconf automake libtool`
+
 Things that are not supported on windows
 - `sys/syscall.h`
 - `pthread priority inheritence`

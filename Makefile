@@ -2,6 +2,20 @@ SHELL := /bin/bash
 
 include config.mk
 
+# Target OS detection
+ifeq ($(OS),Windows_NT) # OS is a preexisting environment variable on Windows
+	OS = windows
+else
+	UNAME := $(shell uname -s)
+	ifeq ($(UNAME),Darwin)
+		OS = macos
+	else ifeq ($(UNAME),Linux)
+		OS = linux
+	else
+    	$(error OS not supported by this Makefile)
+	endif
+endif
+
 LLIBNAME = lib$(LIBNAME)
 LOC_INC_DIR = include
 LOC_SRC_DIR = src
@@ -18,15 +32,21 @@ UPSTREAM_VERSION = $(LIB_VERSION).$(VREV)
 DEBIAN_REVISION = $(VDEB)
 VERSION = $(UPSTREAM_VERSION)-$(DEBIAN_REVISION)
 
+DYNLIB_EXT = so
+# Windows-specific default settings
+ifeq ($(OS),windows)
+	DYNLIB_EXT = dll
+endif
+
 VLIBNAME = $(LLIBNAME)-$(LIB_VERSION)
-SONAME = $(LLIBNAME).so.$(LIB_VERSION)
+SONAME = $(LLIBNAME).$(DYNLIB_EXT).$(LIB_VERSION)
 ANAME = $(LLIBNAME).a
 
 CGLM = cglm
-CGLMLIB = $(CGLM)/.libs/lib$(CGLM).so
+CGLMLIB = $(CGLM)/.libs/lib$(CGLM).$(DYNLIB_EXT)
 
 STATLIB = $(LOC_LIB_DIR)/$(LLIBNAME).a
-DYNLIB = $(LOC_LIB_DIR)/$(LLIBNAME).so
+DYNLIB = $(LOC_LIB_DIR)/$(LLIBNAME).$(DYNLIB_EXT)
 
 SOURCES = $(wildcard $(LOC_SRC_DIR)/*.c)
 GAC_OBJECTS := $(patsubst $(LOC_SRC_DIR)/%.c, $(LOC_OBJ_DIR)/%.o, $(SOURCES))
@@ -60,7 +80,7 @@ $(STATLIB): $(GAC_OBJECTS)
 
 $(DYNLIB): $(GAC_OBJECTS)
 	$(CC) -shared -Wl,-soname,$(SONAME) $^ -o $@ $(LINK_DIR) $(LINK_FILE)
-	ln -sf $(LLIBNAME).so $(LOC_LIB_DIR)/$(SONAME)
+	ln -sf $(LLIBNAME).$(DYNLIB_EXT) $(LOC_LIB_DIR)/$(SONAME)
 
 # compile project
 $(LOC_OBJ_DIR)/%.o: $(LOC_SRC_DIR)/%.c $(CGLMLIB)

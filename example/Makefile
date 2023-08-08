@@ -2,6 +2,11 @@ SHELL := /bin/bash
 APPNAME = example
 SOURCES = example.c
 
+# Windows-specific default settings
+ifeq ($(OS),windows)
+	APPNAME = $(APPNAME).exe
+endif
+
 INCLUDES_DIR = -I../cglm/include \
 			   -I../include
 

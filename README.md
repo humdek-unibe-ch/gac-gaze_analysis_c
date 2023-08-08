@@ -42,3 +42,62 @@ At the end, destroy the gaze analysis handler:
 ```c
 gac_destroy( &h );
 ```
+
+## Building the library on Linux (Ubuntu)
+
+In order to build the library the following packages are required:
+
+```sh
+sudo apt install build-essential
+sudo apt install autoconf autogen libtool
+```
+
+To build the library use the command
+
+```sh
+make
+```
+
+To run tests use
+
+```sh
+make test
+```
+
+Build and run the example with the following commands:
+
+```sh
+cd example
+make
+make run
+```
+
+## Building the library on Windows
+
+Build the library on windows with [`msys2`](https://www.msys2.org/).
+Once installed start `msys2.exe`.
+
+Some dependencies need to be installed.
+To do this type the following commands:
+
+```sh
+pacman -Syyu
+pacman -Sy mingw-w64-x86_64-gcc
+pacman -Sy autogen autoconf automake libtool
+```
+
+Finally, to build the library type
+
+```sh
+make
+```
+
+Build the example with the following commands:
+
+```sh
+cd example
+make
+```
+
+To run the example make sure that the system knows the location of `msys2.dll` (either by adding the location to the PATH or by copying the file to the example folder).
+Run the example by starting `example.exe`.
