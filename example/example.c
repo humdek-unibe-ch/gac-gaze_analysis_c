@@ -87,6 +87,7 @@ int main()
                     saccade.point_dest[0], saccade.point_dest[1], saccade.point_dest[2],
                     saccade.duration );
         }
+        gac_sample_window_cleanup( &h );
     }
 
     gac_destroy( &h );

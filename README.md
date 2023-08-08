@@ -36,6 +36,9 @@ if( res == true )
 {
     // new saccade detected
 }
+
+// remove samples from the sample window which are no longer used
+gac_sample_window_cleanup( h );
 ```
 
 At the end, destroy the gaze analysis handler:
