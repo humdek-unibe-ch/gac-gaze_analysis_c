@@ -1193,6 +1193,8 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
     bool is_first = true;
     vec3 max;
     vec3 min;
+    glm_vec3_zero( min );
+    glm_vec3_zero( max );
 
     if( dispersion == NULL )
     {
