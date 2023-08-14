@@ -16,6 +16,7 @@ LD_LIBRARY_PATH = LD_LIBRARY_PATH=$(LIBDIR)
 LINK_DIR = -L$(LIBDIR)
 
 LINK_FILE = -lm \
+			-lcsv \
 			-lgac
 
 CFLAGS = -Wall
