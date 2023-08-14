@@ -63,8 +63,10 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     gac_filter_fixation_init( &h->fixation,
             h->parameter.fixation.dispersion_threshold,
             h->parameter.fixation.duration_threshold );
+    gac_queue_set_rm_handler( &h->fixation.window, NULL );
     gac_filter_saccade_init( &h->saccade,
             h->parameter.saccade.velocity_threshold );
+    gac_queue_set_rm_handler( &h->saccade.window, NULL );
     gac_filter_noise_init( &h->noise, h->parameter.noise.type,
             h->parameter.noise.mid_idx );
     gac_filter_gap_init( &h->gap, h->parameter.gap.max_gap_length,
@@ -206,6 +208,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     vec3 point;
     gac_sample_t* first_sample;
     gac_queue_t* window;
+
     if( action != NULL )
     {
         *action = GAC_FILTER_STEP_ACTION_NONE;
@@ -221,11 +224,9 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     duration = sample->timestamp - first_sample->timestamp;
     if( duration >= filter->duration_threshold )
     {
-        // requires window count because the items might be managed by a parent
-        // window
-        gac_samples_dispersion( window, &dispersion, window->count );
-        gac_samples_average_origin( window, &origin, window->count );
-        gac_samples_average_point( window, &point, window->count );
+        gac_samples_dispersion( window, &dispersion, 0 );
+        gac_samples_average_origin( window, &origin, 0 );
+        gac_samples_average_point( window, &point, 0 );
         distance = glm_vec3_distance( origin, point );
         dispersion_threshold = distance * filter->normalized_dispersion_threshold;
 
@@ -815,6 +816,10 @@ bool gac_queue_pop( gac_queue_t* queue, void** data )
         queue->head = queue->head->prev;
         free_item->next = queue->tail;
         free_item->prev = queue->tail->prev;
+        if( free_item->prev != NULL )
+        {
+            free_item->prev->next = free_item;
+        }
         queue->tail->prev = free_item;
     }
     queue->head->next = NULL;
@@ -870,7 +875,7 @@ bool gac_queue_remove( gac_queue_t* queue )
 /******************************************************************************/
 bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ))
 {
-    if( queue == NULL || rm == NULL )
+    if( queue == NULL )
     {
         return false;
     }
@@ -989,7 +994,6 @@ bool gac_sample_window_cleanup( gac_t* h )
 bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 {
     gac_sample_t* sample;
-    gac_queue_t* window;
     gac_filter_step_action_t action;
     bool res;
 
@@ -997,35 +1001,19 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
     {
         return false;
     }
-    window = &h->fixation.window;
 
-    if( window->head == NULL )
-    {
-        window->head = h->samples.head;
-    }
-    if( window->tail == NULL )
-    {
-        window->tail = h->samples.head;
-    }
-    if( window->tail->prev != NULL )
-    {
-        window->tail = window->tail->prev;
-    }
-    window->count++;
+    sample = h->samples.tail->data;
 
-    sample = window->tail->data;
-
+    gac_queue_push( &h->fixation.window, sample );
     res = gac_filter_fixation_step( &h->fixation, sample, fixation, &action );
 
     switch( action )
     {
-        case GAC_FILTER_STEP_ACTION_SHRINK:
-            window->count--;
-            window->head = window->head->prev;
-            break;
         case GAC_FILTER_STEP_ACTION_CLEAR:
-            window->count = 0;
-            window->head = window->tail;
+            gac_queue_clear( &h->fixation.window );
+            break;
+        case GAC_FILTER_STEP_ACTION_SHRINK:
+            gac_queue_remove( &h->fixation.window );
             break;
         default:
             break;
@@ -1038,7 +1026,6 @@ bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 {
     gac_filter_step_action_t action;
-    gac_queue_t* window;
     gac_sample_t* sample;
     bool res;
 
@@ -1046,39 +1033,19 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
     {
         return false;
     }
-    window = &h->saccade.window;
 
-    if( window->head == NULL )
-    {
-        window->head = h->samples.head;
-    }
-    if( window->tail == NULL )
-    {
-        window->tail = h->samples.head;
-    }
-    if( window->tail->prev != NULL )
-    {
-        window->tail = window->tail->prev;
-    }
-    if( window->count == 0 )
-    {
-        window->head = window->head->prev;
-    }
-    window->count++;
+    sample = h->samples.tail->data;
 
-    sample = window->tail->data;
-
+    gac_queue_push( &h->saccade.window, sample );
     res = gac_filter_saccade_step( &h->saccade, sample, saccade, &action );
 
     switch( action )
     {
         case GAC_FILTER_STEP_ACTION_CLEAR:
-            window->count = 0;
-            window->head = window->tail;
+            gac_queue_clear( &h->saccade.window );
             break;
         case GAC_FILTER_STEP_ACTION_SHRINK:
-            window->count--;
-            window->head = window->head->prev;
+            gac_queue_remove( &h->saccade.window );
             break;
         default:
             break;
@@ -1088,7 +1055,7 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
-void gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
+int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp )
 {
     vec3 point;
@@ -1104,7 +1071,7 @@ void gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
     sample = gac_sample_create( &origin, &point, timestamp );
 
     sample = gac_filter_noise( &h->noise, sample );
-    gac_filter_gap( &h->gap, &h->samples, sample );
+    return gac_filter_gap( &h->gap, &h->samples, sample );
 }
 
 /******************************************************************************/
@@ -1248,6 +1215,7 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
 
     if( count > 0 && i < count )
     {
+        printf("count(%d) > 0, i(%d) < count(%d), item: %p:\n", count, i, count, item );
         return false;
     }
 
