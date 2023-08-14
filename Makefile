@@ -43,7 +43,6 @@ SONAME = $(LLIBNAME).$(DYNLIB_EXT).$(LIB_VERSION)
 ANAME = $(LLIBNAME).a
 
 CGLM = cglm
-CGLMLIB = $(CGLM)/.libs/lib$(CGLM).$(DYNLIB_EXT)
 
 STATLIB = $(LOC_LIB_DIR)/$(LLIBNAME).a
 DYNLIB = $(LOC_LIB_DIR)/$(LLIBNAME).$(DYNLIB_EXT)
@@ -57,11 +56,9 @@ INCLUDES_DIR = -I$(CGLM)/include \
 			   -I$(LOC_INC_DIR) \
 			   -I.
 
-LINK_DIR = -L/usr/local/lib\
-		   -L$(CGLM)/.libs
+LINK_DIR = -L/usr/local/lib
 
-LINK_FILE = -lcglm \
-			-lm
+LINK_FILE = -lm
 
 CFLAGS = -Wall -fPIC \
 		 -DLIBSMXUTILS_VERSION_UP=\"$(UPSTREAM_VERSION)\"
@@ -83,17 +80,10 @@ $(DYNLIB): $(GAC_OBJECTS)
 	ln -sf $(LLIBNAME).$(DYNLIB_EXT) $(LOC_LIB_DIR)/$(SONAME)
 
 # compile project
-$(LOC_OBJ_DIR)/%.o: $(LOC_SRC_DIR)/%.c $(CGLMLIB)
+$(LOC_OBJ_DIR)/%.o: $(LOC_SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES_DIR) -c $< -o $@ $(LINK_DIR) $(LINK_FILE)
 
 directories: $(CREATE_DIR)
-
-$(CGLMLIB): $(CGLM)/Makefile
-	$(MAKE) -C $(CGLM)
-
-$(CGLM)/Makefile:
-	( cd $(CGLM) && sh autogen.sh )
-	( cd $(CGLM) && ./configure )
 
 $(CREATE_DIR):
 	mkdir -p $@
