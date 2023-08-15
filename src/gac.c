@@ -28,6 +28,7 @@ void gac_destroy( gac_t* h )
     gac_filter_saccade_destroy( &h->saccade );
     gac_filter_gap_destroy( &h->gap );
     gac_filter_noise_destroy( &h->noise );
+    gac_screen_destroy( h->screen );
 
     if( h->is_heap )
     {
@@ -43,7 +44,9 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
         return false;
     }
 
+    h->screen = NULL;
     h->is_heap = false;
+    h->is_normalized = true;
     gac_get_filter_parameter_default( &h->parameter );
 
     if( parameter != NULL )
@@ -120,6 +123,37 @@ bool gac_get_filter_parameter_default( gac_filter_parameter_t* parameter )
 }
 
 /******************************************************************************/
+bool gac_set_screen( gac_t* h, bool is_normalized,
+        float top_left_x, float top_left_y, float top_left_z,
+        float top_right_x, float top_right_y, float top_right_z,
+        float bottom_left_x, float bottom_left_y, float bottom_left_z,
+        float bottom_right_x, float bottom_right_y, float bottom_right_z )
+{
+    gac_screen_t* screen;
+    vec3 top_left = { top_left_x, top_left_y, top_left_z };
+    vec3 top_right = { top_right_x, top_right_y, top_right_z };
+    vec3 bottom_left = { bottom_left_x, bottom_left_y, bottom_left_z };
+    vec3 bottom_right = { bottom_right_x, bottom_right_y, bottom_right_z };
+
+    if( h == NULL )
+    {
+        return false;
+    }
+
+    screen = gac_screen_create( &top_left, &top_right, &bottom_left,
+            &bottom_right );
+    if( screen == NULL )
+    {
+        return false;
+    }
+
+    h->is_normalized = is_normalized;
+    h->screen = screen;
+
+    return true;
+}
+
+/******************************************************************************/
 bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
         gac_fixation_t* fixation )
 {
@@ -186,6 +220,7 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
 
     filter->is_heap = false;
     filter->duration = 0;
+    glm_vec2_zero( filter->screen_point );
     glm_vec3_zero( filter->point );
     filter->is_collecting = false;
     filter->duration_threshold = duration_threshold;
@@ -206,6 +241,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     float dispersion, dispersion_threshold, distance;
     vec3 origin;
     vec3 point;
+    vec2 screen_point;
     gac_sample_t* first_sample;
     gac_queue_t* window;
 
@@ -227,6 +263,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         gac_samples_dispersion( window, &dispersion, 0 );
         gac_samples_average_origin( window, &origin, 0 );
         gac_samples_average_point( window, &point, 0 );
+        gac_samples_average_screen_point( window, &screen_point, 0 );
         distance = glm_vec3_distance( origin, point );
         dispersion_threshold = distance * filter->normalized_dispersion_threshold;
 
@@ -239,11 +276,12 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
             }
             filter->duration = duration;
             glm_vec3_copy( point, filter->point );
+            glm_vec3_copy( screen_point, filter->screen_point );
         }
         else if( filter->is_collecting )
         {
             // fixation stop
-            gac_fixation_init( fixation, &filter->point,
+            gac_fixation_init( fixation, &filter->screen_point, &filter->point,
                     first_sample->timestamp, filter->duration );
             filter->is_collecting = false;
             if( action != NULL )
@@ -270,6 +308,7 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
     double inter_arrival_time;
     uint32_t i;
     uint32_t sample_count = 0;
+    vec2 screen_point;
     vec3 point;
     vec3 origin;
     double factor;
@@ -299,7 +338,9 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
         factor = ( i + 1.0 ) / ( sample_count + 1.0 );
         glm_vec3_lerp( last_sample->origin, sample->origin, factor, origin );
         glm_vec3_lerp( last_sample->point, sample->point, factor, point );
-        new_sample = gac_sample_create( &origin, &point,
+        glm_vec2_lerp( last_sample->screen_point, sample->screen_point, factor,
+                screen_point );
+        new_sample = gac_sample_create( &screen_point, &origin, &point,
                 last_sample->timestamp + ( i + 1 ) * filter->sample_period );
         gac_queue_push( samples, new_sample );
     }
@@ -391,9 +432,11 @@ gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
     uint32_t count = 0;
     gac_sample_t* sample_mid = sample_mid;
     gac_queue_item_t* mid;
+    vec2 screen_point;
     vec3 point;
     vec3 origin;
 
+    gac_samples_average_screen_point( &filter->window, &screen_point, 0 );
     gac_samples_average_point( &filter->window, &point, 0 );
     gac_samples_average_origin( &filter->window, &origin, 0 );
 
@@ -405,7 +448,8 @@ gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
     }
     sample_mid = mid->data;
 
-    return gac_sample_create( &origin, &point, sample_mid->timestamp );
+    return gac_sample_create( &screen_point, &origin, &point,
+            sample_mid->timestamp );
 }
 
 /******************************************************************************/
@@ -578,8 +622,9 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
         // saccade stop
         s2 = s1;
         s1 = window->head->data;
-        gac_saccade_init( saccade, &s1->point, &s2->point,
-                s1->timestamp, s2->timestamp - s1->timestamp );
+        gac_saccade_init( saccade, &s1->screen_point, &s2->screen_point,
+                &s1->point, &s2->point, s1->timestamp,
+                s2->timestamp - s1->timestamp );
         filter->is_collecting = false;
         if( action != NULL )
         {
@@ -596,11 +641,11 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
 }
 
 /******************************************************************************/
-gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
-        double duration )
+gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
+        double timestamp, double duration )
 {
     gac_fixation_t* fixation = malloc( sizeof( gac_fixation_t ) );
-    if( !gac_fixation_init( fixation, point, timestamp, duration ) )
+    if( !gac_fixation_init( fixation, screen_point, point, timestamp, duration ) )
     {
         return NULL;
     }
@@ -624,8 +669,8 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
 }
 
 /******************************************************************************/
-bool gac_fixation_init( gac_fixation_t* fixation, vec3* point,
-        double timestamp, double duration )
+bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
+        vec3* point, double timestamp, double duration )
 {
     if( fixation == NULL )
     {
@@ -634,6 +679,7 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec3* point,
 
     fixation->is_heap = false;
     fixation->duration = duration;
+    glm_vec2_copy( *screen_point, fixation->screen_point );
     glm_vec3_copy( *point, fixation->point );
     fixation->timestamp = timestamp;
 
@@ -886,12 +932,13 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ))
 }
 
 /******************************************************************************/
-gac_saccade_t* gac_saccade_create( vec3* point_start, vec3* point_dest,
+gac_saccade_t* gac_saccade_create( vec2* screen_point_start,
+        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
         double timestamp, double duration )
 {
     gac_saccade_t* saccade = malloc( sizeof( gac_fixation_t ) );
-    if( !gac_saccade_init( saccade, point_start, point_dest, timestamp,
-            duration ) )
+    if( !gac_saccade_init( saccade, screen_point_start, screen_point_dest,
+                point_start, point_dest, timestamp, duration ) )
     {
         return NULL;
     }
@@ -915,8 +962,9 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
-bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
-        vec3* point_dest, double timestamp, double duration )
+bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
+        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
+        double timestamp, double duration )
 {
     if( saccade == NULL )
     {
@@ -925,6 +973,8 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
 
     saccade->is_heap = false;
     saccade->duration = duration;
+    glm_vec2_copy( *screen_point_start, saccade->screen_point_start );
+    glm_vec2_copy( *screen_point_dest, saccade->screen_point_dest );
     glm_vec3_copy( *point_start, saccade->point_start );
     glm_vec3_copy( *point_dest, saccade->point_dest );
     saccade->timestamp = timestamp;
@@ -933,10 +983,11 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
 }
 
 /******************************************************************************/
-gac_sample_t* gac_sample_create( vec3* origin, vec3* point, double timestamp )
+gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
+        double timestamp )
 {
     gac_sample_t* sample = malloc( sizeof( gac_sample_t ) );
-    if( !gac_sample_init( sample, origin, point, timestamp ) )
+    if( !gac_sample_init( sample, screen_point, origin, point, timestamp ) )
     {
         return NULL;
     }
@@ -962,8 +1013,8 @@ void gac_sample_destroy( void* data )
 }
 
 /******************************************************************************/
-bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
-        double timestamp )
+bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
+        vec3* point, double timestamp )
 {
     if( sample == NULL )
     {
@@ -971,6 +1022,7 @@ bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
     }
 
     sample->is_heap = false;
+    glm_vec3_copy( *screen_point, sample->screen_point );
     glm_vec3_copy( *origin, sample->origin );
     glm_vec3_copy( *point, sample->point );
     sample->timestamp = timestamp;
@@ -1058,9 +1110,9 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp )
 {
+    vec2 screen_point;
     vec3 point;
     vec3 origin;
-    gac_sample_t* sample;
 
     origin[0] = ox;
     origin[1] = oy;
@@ -1068,10 +1120,58 @@ int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
     point[0] = px;
     point[1] = py;
     point[2] = pz;
-    sample = gac_sample_create( &origin, &point, timestamp );
+
+    if( h->screen != NULL )
+    {
+        if( h->is_normalized )
+        {
+            gac_screen_point_normalized( h->screen, &point, &screen_point );
+        }
+        else
+        {
+            gac_screen_point( h->screen, &point, &screen_point );
+        }
+    }
+    else
+    {
+        glm_vec2_zero( screen_point );
+    }
+
+    return gac_sample_window_update_vec( h, &screen_point, &origin, &point,
+            timestamp );
+}
+
+/******************************************************************************/
+int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
+        vec3* point, double timestamp )
+{
+    gac_sample_t* sample;
+
+    sample = gac_sample_create( screen_point, origin, point, timestamp );
 
     sample = gac_filter_noise( &h->noise, sample );
     return gac_filter_gap( &h->gap, &h->samples, sample );
+}
+
+/******************************************************************************/
+int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
+        float px, float py, float pz, float sx, float sy, double timestamp )
+{
+    vec2 screen_point;
+    vec3 point;
+    vec3 origin;
+
+    screen_point[0] = sx;
+    screen_point[1] = sy;
+    origin[0] = ox;
+    origin[1] = oy;
+    origin[2] = oz;
+    point[0] = px;
+    point[1] = py;
+    point[2] = pz;
+
+    return gac_sample_window_update_vec( h, &screen_point, &origin, &point,
+            timestamp );
 }
 
 /******************************************************************************/
@@ -1151,6 +1251,44 @@ success:
 }
 
 /******************************************************************************/
+bool gac_samples_average_screen_point( gac_queue_t* samples, vec2* avg,
+        uint32_t count )
+{
+    uint32_t i = 0;
+    gac_sample_t* sample;
+    gac_queue_item_t* item = samples->tail;
+
+    if( avg == NULL || samples->count == 0 )
+    {
+        return false;
+    }
+
+    glm_vec2_zero( *avg );
+
+    while( item != NULL )
+    {
+        sample = item->data;
+        glm_vec2_add( *avg, sample->screen_point, *avg );
+        item = item->next;
+
+        i++;
+        if( i == count )
+        {
+            goto success;
+        }
+    }
+
+    if( count > 0 && i < count )
+    {
+        return false;
+    }
+
+success:
+    glm_vec2_divs( *avg, samples->count, *avg );
+    return true;
+}
+
+/******************************************************************************/
 bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
         uint32_t count )
 {
@@ -1221,5 +1359,169 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
 
 success:
     *dispersion = max[0] - min[0] + max[1] - min[1] + max[2] - min[2];
+    return true;
+}
+
+/******************************************************************************/
+gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
+        vec3* bottom_left, vec3* bottom_right )
+{
+    gac_screen_t* screen = malloc( sizeof( gac_screen_t ) );
+
+    if( screen == NULL )
+    {
+        return NULL;
+    }
+
+    if( !gac_screen_init( screen, top_left, top_right, bottom_left,
+                bottom_right ) )
+    {
+        gac_screen_destroy( screen );
+        return NULL;
+    }
+
+    return screen;
+}
+
+/******************************************************************************/
+void gac_screen_destroy( gac_screen_t* screen )
+{
+    if( screen == NULL || screen->is_heap)
+    {
+        return;
+    }
+
+    free( screen );
+}
+
+/******************************************************************************/
+bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
+        vec3* bottom_left, vec3* bottom_right )
+{
+    mat4 d = {
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f, 1.0f}
+    };
+    mat4 s = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {1.0f, 1.0f, 1.0f, 1.0f}
+    };
+    mat4 s_inv;
+    vec3 e1, e2, norm;
+    vec3 u, v, w;
+
+    if( screen == NULL || top_left == NULL || top_right == NULL
+            || bottom_left == NULL || bottom_right == NULL )
+    {
+        return false;
+    }
+
+    glm_vec3_copy( *top_left, screen->top_left );
+    glm_vec3_copy( *top_right, screen->top_right );
+    glm_vec3_copy( *bottom_left, screen->bottom_left );
+    glm_vec3_copy( *bottom_right, screen->bottom_right );
+
+    glm_vec3_sub( *top_right, *top_left, e1 );
+    glm_vec3_sub( *bottom_left, *top_left, e2 );
+    glm_vec3_cross( e1, e2, screen->norm );
+
+    screen->width = glm_vec3_norm( e1 );
+    screen->height = glm_vec3_norm( e2 );
+
+    glm_vec3_normalize( e1 );
+    glm_vec3_normalize( e2 );
+    glm_vec3_normalize_to( screen->norm, norm );
+    glm_vec3_add( *top_left, e1, u );
+    glm_vec3_add( *top_left, e2, v );
+    glm_vec3_add( *top_left, norm, w );
+
+    s[0][0] = ( *top_left )[0];
+    s[1][0] = ( *top_left )[1];
+    s[2][0] = ( *top_left )[2];
+    s[0][1] = u[0];
+    s[1][1] = u[1];
+    s[2][1] = u[2];
+    s[0][2] = v[0];
+    s[1][2] = v[1];
+    s[2][2] = v[2];
+    s[0][3] = w[0];
+    s[1][3] = w[1];
+    s[2][3] = w[2];
+
+    glm_mat4_inv( s, s_inv );
+    glm_mat4_mul( d, s_inv, screen->m );
+    glm_mat4_transpose( screen->m );
+    gac_screen_point( screen, top_left, &screen->origin );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_screen_intersection( gac_screen_t* screen, vec3* origin, vec3* dir,
+        vec3* intersection )
+{
+    float d;
+    float n;
+    vec3 dir_scale, dir_neg, dir_init;
+
+    if( screen == NULL || origin == NULL || dir == NULL
+            || intersection == NULL )
+    {
+        return false;
+    }
+
+    glm_vec3_scale( *dir, -1, dir_neg );
+    glm_vec3_sub( *origin, screen->top_left, dir_init );
+
+    d = glm_vec3_dot( screen->norm, dir_init );
+    n = glm_vec3_dot( screen->norm, dir_neg );
+
+    if( n == 0 )
+    {
+        return false;
+    }
+
+    glm_vec3_scale( *dir, d / n, dir_scale );
+    glm_vec3_add( *origin, dir_scale, *intersection );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_screen_point( gac_screen_t* screen, vec3* point3d, vec2* point2d )
+{
+    vec3 p;
+
+    if( screen == NULL || point3d == NULL || point2d == NULL )
+    {
+        return false;
+    }
+
+    glm_mat4_mulv3( screen->m, *point3d, 1, p );
+    ( *point2d )[0] = p[0];
+    ( *point2d )[1] = p[1];
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_screen_point_normalized( gac_screen_t* screen, vec3* point3d,
+        vec2* point2d )
+{
+    vec2 p_offset, p;
+
+    if( !gac_screen_point( screen, point3d, &p_offset ) )
+    {
+        return false;
+    }
+
+    glm_vec2_sub( p_offset, screen->origin, p );
+    ( *point2d )[0] = p[0] / screen->width;
+    ( *point2d )[1] = p[1] / screen->height;
+
     return true;
 }

@@ -31,6 +31,8 @@ typedef struct gac_queue_s gac_queue_t;
 typedef struct gac_queue_item_s gac_queue_item_t;
 /** ::gac_saccade_s */
 typedef struct gac_saccade_s gac_saccade_t;
+/** ::gac_screen_s */
+typedef struct gac_screen_s gac_screen_t;
 
 /**
  * The available noise filter types
@@ -66,6 +68,8 @@ struct gac_sample_s
 {
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
+    /** The 2d gaze point on the screen. */
+    vec2 screen_point;
     /** The gaze point. */
     vec3 point;
     /** The gaze origin. */
@@ -81,6 +85,8 @@ struct gac_fixation_s
 {
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
+    /** The 2d fixation gaze point on the screen. */
+    vec2 screen_point;
     /** The fixation gaze point */
     vec3 point;
     /** The fixation duration in milliseconds */
@@ -96,6 +102,10 @@ struct gac_saccade_s
 {
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
+    /** The 2d screen start point of the saccade */
+    vec2 screen_point_start;
+    /** The 2d screen end point of the saccade */
+    vec2 screen_point_dest;
     /** The start point of the saccade */
     vec3 point_start;
     /** The end point of the saccade */
@@ -155,6 +165,8 @@ struct gac_filter_fixation_s
     gac_queue_t window;
     /** The fixation duration */
     double duration;
+    /** The fixation screen point */
+    vec2 screen_point;
     /** The fixation point */
     vec3 point;
 };
@@ -249,12 +261,41 @@ struct gac_filter_parameter_s
 };
 
 /**
+ * Screen definition of the eye tracker.
+ */
+struct gac_screen_s
+{
+    /** Flag to indicate whether the struct was allocated on the heap. */
+    bool is_heap;
+    /** The width of the screen. */
+    float width;
+    /** The height of the screen. */
+    float height;
+    /** The bottom left coprner of the screen in 3d space. */
+    vec3 bottom_left;
+    /** The bottom right coprner of the screen in 3d space. */
+    vec3 bottom_right;
+    /** The top left coprner of the screen in 3d space. */
+    vec3 top_left;
+    /** The top right coprner of the screen in 3d space. */
+    vec3 top_right;
+    /** The normal of the screen surface. */
+    vec3 norm;
+    /** The screen origin in 2d space. */
+    vec2 origin;
+    /** Transformation matrix to transform a 3d gaze point to a 2d gaze point. */
+    mat4 m;
+};
+
+/**
  * The gaze analysis handler structure.
  */
 struct gac_s
 {
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
+    /** falg to control wheter screen gaze data should be computed normalized. */
+    bool is_normalized;
     /** The sample queue */
     gac_queue_t samples;
     /** The fixation filter structure */
@@ -267,6 +308,8 @@ struct gac_s
     gac_filter_noise_t noise;
     /** The parameters passed during configuration */
     gac_filter_parameter_t parameter;
+    /** The screen information. */
+    gac_screen_t* screen;
 };
 
 // HANDLER /////////////////////////////////////////////////////////////////////
@@ -333,6 +376,49 @@ bool gac_get_filter_parameter( gac_t* h, gac_filter_parameter_t* parameter );
  *  True on success, false on failure.
  */
 bool gac_get_filter_parameter_default( gac_filter_parameter_t* parameter );
+
+/**
+ * Configure the screen position in 3d space. This allows to compute 2d
+ * gaze point coordinates.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param is_normalized
+ *  If set to true computed screen points will be normalized where (0, 0)
+ *  corresponds to the top left corner and (1, 1) to to the bottom right corner
+ *  of the screen.
+ * @param top_left_x
+ *  The x coordinate of the top left screen corner.
+ * @param top_left_y
+ *  The y coordinate of the top left screen corner.
+ * @param top_left_z
+ *  The z coordinate of the top left screen corner.
+ * @param top_right_x
+ *  The x coordinate of the top right screen corner.
+ * @param top_right_y
+ *  The y coordinate of the top right screen corner.
+ * @param top_right_z
+ *  The z coordinate of the top right screen corner.
+ * @param bottom_left_x
+ *  The x coordinate of the bottom left screen corner.
+ * @param bottom_left_y
+ *  The y coordinate of the bottom left screen corner.
+ * @param bottom_left_z
+ *  The z coordinate of the bottom left screen corner.
+ * @param bottom_right_x
+ *  The x coordinate of the bottom right screen corner.
+ * @param bottom_right_y
+ *  The y coordinate of the bottom right screen corner.
+ * @param bottom_right_z
+ *  The z coordinate of the bottom right screen corner.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_set_screen( gac_t* h, bool is_normalized,
+        float top_left_x, float top_left_y, float top_left_z,
+        float top_right_x, float top_right_y, float top_right_z,
+        float bottom_left_x, float bottom_left_y, float bottom_left_z,
+        float bottom_right_x, float bottom_right_y, float bottom_right_z );
 
 // FILTER //////////////////////////////////////////////////////////////////////
 
@@ -610,6 +696,8 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
  * Allocate a new fixation structure on the heap. This structure must be
  * freed.
  *
+ * @param screen_point
+ *  The fixation screen point.
  * @param point
  *  The fixation point.
  * @param timestamp
@@ -619,8 +707,8 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
  * @return
  *  The allocated fixation structure or NULL on failure.
  */
-gac_fixation_t* gac_fixation_create( vec3* point, double timestamp,
-        double duration );
+gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
+        double timestamp, double duration );
 
 /**
  * Destroy a fixation structure.
@@ -635,6 +723,8 @@ void gac_fixation_destroy( gac_fixation_t* fixation );
  *
  * @param fixation
  *  The fixation structure to initialise.
+ * @param screen_point
+ *  The fixation screen point.
  * @param point
  *  The fixation point.
  * @param timestamp
@@ -644,8 +734,8 @@ void gac_fixation_destroy( gac_fixation_t* fixation );
  * @return
  *  True on success, false on failure.
  */
-bool gac_fixation_init( gac_fixation_t* fixation, vec3* point,
-        double timestamp, double duration );
+bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
+        vec3* point, double timestamp, double duration );
 
 /**
  * Compute a dispersion threashold assuming a unit distance. To get the actual
@@ -770,6 +860,10 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ));
 /**
  * Allocate a new saccade structure on the heap. This needs to be freed.
  *
+ * @param screen_point_start
+ *  The first 2d screen gaze point in a saccade.
+ * @param screen_point_dest
+ *  The last 2d screen gaze point in a saccade.
  * @param point_start
  *  The first data point in a saccade.
  * @param point_dest
@@ -781,7 +875,8 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ));
  * @return
  *  The allocated saccade structure on success or NULL on failure.
  */
-gac_saccade_t* gac_saccade_create( vec3* point_start, vec3* point_dest,
+gac_saccade_t* gac_saccade_create( vec2* screen_point_start,
+        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
         double timestamp, double duration );
 
 /**
@@ -797,10 +892,14 @@ void gac_saccade_destroy( gac_saccade_t* saccade );
  *
  * @param saccade
  *  A pointer to the saccade structure to initialise.
+ * @param screen_point_start
+ *  The first 2d screen gaze point in a saccade.
+ * @param screen_point_dest
+ *  The last 2d screen gaze point in a saccade.
  * @param point_start
- *  The first data point in a saccade.
+ *  The first gaze point in a saccade.
  * @param point_dest
- *  The last data point in a saccade.
+ *  The last gaze point in a saccade.
  * @param timestamp
  *  The timestamp of the beggining of the saccade.
  * @param duration
@@ -808,14 +907,17 @@ void gac_saccade_destroy( gac_saccade_t* saccade );
  * @return
  *  True on success, false on failure.
  */
-bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
-        vec3* point_dest, double timestamp, double duration );
+bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
+        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
+        double timestamp, double duration );
 
 // SAMPLE //////////////////////////////////////////////////////////////////////
 
 /**
  * Allocate a new sample structure on the heap. This needs to be freed.
  *
+ * @param screen_point
+ *  The 2d screen gaze point vector.
  * @param origin
  *  The gaze origin vector.
  * @param point
@@ -825,7 +927,8 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec3* point_start,
  * @return
  *  The allocated sample structure or NULL on failure.
  */
-gac_sample_t* gac_sample_create( vec3* origin, vec3* point, double timestamp );
+gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
+        double timestamp );
 
 /**
  * Destroy a sample structure.
@@ -840,6 +943,8 @@ void gac_sample_destroy( void* sample );
  *
  * @param sample
  *  The sample structure to initialise.
+ * @param screen_point
+ *  The 2d screen gaze point vector.
  * @param origin
  *  The gaze origin vector.
  * @param point
@@ -849,8 +954,8 @@ void gac_sample_destroy( void* sample );
  * @return
  *  True on success, false on failure.
  */
-bool gac_sample_init( gac_sample_t* sample, vec3* origin, vec3* point,
-        double timestamp );
+bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
+        vec3* point, double timestamp );
 
 /**
  * Cleanup the sample window. This removes all sample data from the sample
@@ -919,6 +1024,57 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade );
 int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, double timestamp );
 
+/**
+ * Update sample window with a new sample.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param screen_point
+ *  The 2d screen gaze point
+ * @param origin
+ *  The gaze origin.
+ * @param point
+ *  The gaze point.
+ * @param timestamp
+ *  The timestamp of the sample.
+ * @return
+ *  The number of new samples added to the window.
+ */
+int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
+        vec3* point, double timestamp );
+
+/**
+ * Update the sample window with a new sample. If noise filtering is enabled
+ * the filtered data is added to the sample window and the raw sample is
+ * dismissed. If gap filtering is enabled, sample gaps are filled-in with
+ * interpolated data samples.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param ox
+ *  The x coordinate of the gaze origin.
+ * @param oy
+ *  The y coordinate of the gaze origin.
+ * @param oz
+ *  The z coordinate of the gaze origin.
+ * @param px
+ *  The x coordinate of the gaze point.
+ * @param py
+ *  The y coordinate of the gaze point.
+ * @param pz
+ *  The z coordinate of the gaze point.
+ * @param sx
+ *  The x coordinate of the screen gaze point.
+ * @param sy
+ *  The y coordinate of the screen gaze point.
+ * @param timestamp
+ *  The timestamp of the sample.
+ * @return
+ *  The number of new samples added to the window.
+ */
+int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
+        float px, float py, float pz, float sx, float sy, double timestamp );
+
 // SAMPLES /////////////////////////////////////////////////////////////////////
 
 /**
@@ -952,6 +1108,21 @@ bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
         uint32_t count );
 
 /**
+ * Compute the average screen gaze point of samples in the sample window.
+ *
+ * @param samples
+ *  A pointer to the sample window.
+ * @param avg
+ *  A location to store the average gaze point. This is only valid if the
+ *  function returns true.
+ * @param count
+ *  The number of samples to perform the computation on, starting by the queue
+ *  tail (newest first). If 0 is passed, all samples are included.
+ */
+bool gac_samples_average_screen_point( gac_queue_t* samples, vec2* avg,
+        uint32_t count );
+
+/**
  * Compute the gaze point dispersion of samples in the sample window.
  *
  * @param samples
@@ -965,5 +1136,105 @@ bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
  */
 bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
         uint32_t count );
+
+// SCREEN//// //////////////////////////////////////////////////////////////////
+
+/**
+ * Allocate the screen structure. This needs to be freed.
+ *
+ * @param top_left
+ *  The 3d coordinates of the top left screen point.
+ * @param top_right
+ *  The 3d coordinates of the top right screen point.
+ * @param bottom_left
+ *  The 3d coordinates of the bottom left screen point.
+ * @param bottom_right
+ *  The 3d coordinates of the bottom right screen point.
+ * @return
+ *  A pointer to the allocated screen structure or NULL on failure.
+ */
+gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
+        vec3* bottom_left, vec3* bottom_right );
+
+/**
+ * Destroy a screen structure.
+ *
+ * @param screen
+ *  A pointer to the screen structure to destroy
+ */
+void gac_screen_destroy( gac_screen_t* screen );
+
+/**
+ * Initialise a screen structure.
+ *
+ * @param screen
+ *  A pointer to the screen structure to initialise.
+ * @param top_left
+ *  The 3d coordinates of the top left screen point.
+ * @param top_right
+ *  The 3d coordinates of the top right screen point.
+ * @param bottom_left
+ *  The 3d coordinates of the bottom left screen point.
+ * @param bottom_right
+ *  The 3d coordinates of the bottom right screen point.
+ * @return
+ *  True on succes and false on failure.
+ */
+bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
+        vec3* bottom_left, vec3* bottom_right );
+
+/**
+ * Compute the 3d intersection point with the screen.
+ *
+ * @param screen
+ *  A pointer to the screen structure.
+ * @param origin
+ *  The origin of the gaze.
+ * @param dir
+ *  The gaze direction.
+ * @param intersection
+ *  A location to store the intersection point. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True if an intersection was found, false otherwise.
+ */
+bool gac_screen_intersection( gac_screen_t* screen, vec3* origin, vec3* point,
+        vec3* intersection );
+
+/**
+ * Transform a 3d gaze point into a 2d point on the screen. This only works for
+ * 3d points which coincide with the screen plane. To compute an intersection
+ * use the function gac_screen_intersection().
+ *
+ * @param screen
+ *  A pointer to the screen structure.
+ * @param point3d
+ *  The 3d point to transform.
+ * @param point2d
+ *  A location where the 2d point will be stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True on success, false otherwise.
+ */
+bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
+        vec2* point2d );
+
+/**
+ * Transform a 3d gaze point into a normalized 2d point on the screen.
+ * (0, 0) represents the top left corner of the screen and (1, 1) represents
+ * the bottom right corner.
+ *
+ * @param screen
+ *  A pointer to the screen structure.
+ * @param point3d
+ *  The 3d point to transform.
+ * @param point2d
+ *  A location where the 2d point will be stored. This is only valid if the
+ *  function returns true.
+ * @return
+ *  True on success, false otherwise.
+ */
+bool gac_screen_point_normalized( gac_screen_t* screen, vec3* point3d,
+        vec2* point2d );
 
 #endif
