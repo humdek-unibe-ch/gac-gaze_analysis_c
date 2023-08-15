@@ -277,7 +277,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
             }
             filter->duration = duration;
             glm_vec3_copy( point, filter->point );
-            glm_vec3_copy( screen_point, filter->screen_point );
+            glm_vec2_copy( screen_point, filter->screen_point );
         }
         else if( filter->is_collecting )
         {
