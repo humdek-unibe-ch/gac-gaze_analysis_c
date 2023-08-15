@@ -1,6 +1,7 @@
 #include "gac.h"
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 /******************************************************************************/
 gac_t* gac_create( gac_filter_parameter_t* parameter )
@@ -341,7 +342,8 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
         glm_vec2_lerp( last_sample->screen_point, sample->screen_point, factor,
                 screen_point );
         new_sample = gac_sample_create( &screen_point, &origin, &point,
-                last_sample->timestamp + ( i + 1 ) * filter->sample_period );
+                last_sample->timestamp + ( i + 1 ) * filter->sample_period,
+                sample->label );
         gac_queue_push( samples, new_sample );
     }
 
@@ -449,7 +451,7 @@ gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
     sample_mid = mid->data;
 
     return gac_sample_create( &screen_point, &origin, &point,
-            sample_mid->timestamp );
+            sample_mid->timestamp, sample_mid->label );
 }
 
 /******************************************************************************/
@@ -984,10 +986,10 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
 
 /******************************************************************************/
 gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
-        double timestamp )
+        double timestamp, const char* label )
 {
     gac_sample_t* sample = malloc( sizeof( gac_sample_t ) );
-    if( !gac_sample_init( sample, screen_point, origin, point, timestamp ) )
+    if( !gac_sample_init( sample, screen_point, origin, point, timestamp, label ) )
     {
         return NULL;
     }
@@ -1006,6 +1008,11 @@ void gac_sample_destroy( void* data )
         return;
     }
 
+    if( sample->label != NULL )
+    {
+        free( sample->label );
+    }
+
     if( sample->is_heap )
     {
         free( sample );
@@ -1014,7 +1021,7 @@ void gac_sample_destroy( void* data )
 
 /******************************************************************************/
 bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp )
+        vec3* point, double timestamp, const char* label )
 {
     if( sample == NULL )
     {
@@ -1022,6 +1029,11 @@ bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
     }
 
     sample->is_heap = false;
+    sample->label = NULL;
+    if( label != NULL )
+    {
+        strcpy( sample->label, label );
+    }
     glm_vec3_copy( *screen_point, sample->screen_point );
     glm_vec3_copy( *origin, sample->origin );
     glm_vec3_copy( *point, sample->point );
@@ -1108,7 +1120,7 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 
 /******************************************************************************/
 int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
-        float px, float py, float pz, double timestamp )
+        float px, float py, float pz, double timestamp, const char* label )
 {
     vec2 screen_point;
     vec3 point;
@@ -1138,16 +1150,16 @@ int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
     }
 
     return gac_sample_window_update_vec( h, &screen_point, &origin, &point,
-            timestamp );
+            timestamp, label );
 }
 
 /******************************************************************************/
 int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp )
+        vec3* point, double timestamp, const char* label )
 {
     gac_sample_t* sample;
 
-    sample = gac_sample_create( screen_point, origin, point, timestamp );
+    sample = gac_sample_create( screen_point, origin, point, timestamp, label );
 
     sample = gac_filter_noise( &h->noise, sample );
     return gac_filter_gap( &h->gap, &h->samples, sample );
@@ -1155,7 +1167,8 @@ int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
 
 /******************************************************************************/
 int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
-        float px, float py, float pz, float sx, float sy, double timestamp )
+        float px, float py, float pz, float sx, float sy, double timestamp,
+        const char* label )
 {
     vec2 screen_point;
     vec3 point;
@@ -1171,7 +1184,7 @@ int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
     point[2] = pz;
 
     return gac_sample_window_update_vec( h, &screen_point, &origin, &point,
-            timestamp );
+            timestamp, label );
 }
 
 /******************************************************************************/
