@@ -283,7 +283,8 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         {
             // fixation stop
             gac_fixation_init( fixation, &filter->screen_point, &filter->point,
-                    first_sample->timestamp, filter->duration );
+                    first_sample->timestamp, filter->duration,
+                    first_sample->label );
             filter->is_collecting = false;
             if( action != NULL )
             {
@@ -626,7 +627,7 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
         s1 = window->head->data;
         gac_saccade_init( saccade, &s1->screen_point, &s2->screen_point,
                 &s1->point, &s2->point, s1->timestamp,
-                s2->timestamp - s1->timestamp );
+                s2->timestamp - s1->timestamp, s1->label );
         filter->is_collecting = false;
         if( action != NULL )
         {
@@ -644,10 +645,11 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
 
 /******************************************************************************/
 gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
-        double timestamp, double duration )
+        double timestamp, double duration, const char* label )
 {
     gac_fixation_t* fixation = malloc( sizeof( gac_fixation_t ) );
-    if( !gac_fixation_init( fixation, screen_point, point, timestamp, duration ) )
+    if( !gac_fixation_init( fixation, screen_point, point, timestamp,
+                duration, label ) )
     {
         return NULL;
     }
@@ -664,6 +666,11 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
         return;
     }
 
+    if( fixation->label != NULL )
+    {
+        free( fixation->label );
+    }
+
     if( fixation->is_heap )
     {
         free( fixation );
@@ -672,7 +679,7 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
 
 /******************************************************************************/
 bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
-        vec3* point, double timestamp, double duration )
+        vec3* point, double timestamp, double duration, const char* label )
 {
     if( fixation == NULL )
     {
@@ -684,6 +691,11 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
     glm_vec2_copy( *screen_point, fixation->screen_point );
     glm_vec3_copy( *point, fixation->point );
     fixation->timestamp = timestamp;
+    fixation->label = NULL;
+    if( label != NULL )
+    {
+        strcpy( fixation->label, label );
+    }
 
     return true;
 }
@@ -936,11 +948,11 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ))
 /******************************************************************************/
 gac_saccade_t* gac_saccade_create( vec2* screen_point_start,
         vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
-        double timestamp, double duration )
+        double timestamp, double duration, const char* label )
 {
     gac_saccade_t* saccade = malloc( sizeof( gac_fixation_t ) );
     if( !gac_saccade_init( saccade, screen_point_start, screen_point_dest,
-                point_start, point_dest, timestamp, duration ) )
+                point_start, point_dest, timestamp, duration, label ) )
     {
         return NULL;
     }
@@ -957,6 +969,11 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
         return;
     }
 
+    if( saccade->label != NULL )
+    {
+        free( saccade->label );
+    }
+
     if( saccade->is_heap )
     {
         free( saccade );
@@ -966,7 +983,7 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
 /******************************************************************************/
 bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
         vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
-        double timestamp, double duration )
+        double timestamp, double duration, const char* label )
 {
     if( saccade == NULL )
     {
@@ -980,6 +997,11 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
     glm_vec3_copy( *point_start, saccade->point_start );
     glm_vec3_copy( *point_dest, saccade->point_dest );
     saccade->timestamp = timestamp;
+    saccade->label = NULL;
+    if( label != NULL )
+    {
+        strcpy( saccade->label, label );
+    }
 
     return true;
 }
