@@ -694,7 +694,7 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
     fixation->label = NULL;
     if( label != NULL )
     {
-        strcpy( fixation->label, label );
+        fixation->label = strdup( label );
     }
 
     return true;
@@ -1000,7 +1000,7 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
     saccade->label = NULL;
     if( label != NULL )
     {
-        strcpy( saccade->label, label );
+        saccade->label = strdup( label );
     }
 
     return true;
@@ -1054,7 +1054,7 @@ bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
     sample->label = NULL;
     if( label != NULL )
     {
-        strcpy( sample->label, label );
+        sample->label = strdup( label );
     }
     glm_vec3_copy( *screen_point, sample->screen_point );
     glm_vec3_copy( *origin, sample->origin );
