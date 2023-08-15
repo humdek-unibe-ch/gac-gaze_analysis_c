@@ -13,6 +13,8 @@ static gac_queue_t samples_stack;
 static gac_queue_t* samples_heap;
 static gac_queue_t* samples;
 
+static float s[2] = { 0, 0 };
+
 float lerp( float a, float b, float t )
 {
     return a + ( b - a ) * t;
@@ -63,7 +65,7 @@ MU_TEST( gap_1 )
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
 
-    gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( 1, count );
     mu_assert_int_eq( 1, samples->count );
@@ -91,12 +93,12 @@ MU_TEST( gap_2 )
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
 
-    gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 1 );
 
-    sample = gac_sample_create( &o2, &p2, timestamp2 );
+    sample = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 2 );
@@ -134,12 +136,12 @@ MU_TEST( gap_2_plus )
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
 
-    gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 1 );
 
-    sample = gac_sample_create( &o2, &p2, timestamp2 );
+    sample = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 2 );
@@ -177,12 +179,12 @@ MU_TEST( gap_2_minus )
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
 
-    gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 1 );
 
-    sample = gac_sample_create( &o2, &p2, timestamp2 );
+    sample = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 2 );
@@ -220,12 +222,12 @@ MU_TEST( gap_2_max )
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
 
-    gac_sample_t* sample = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 1 );
 
-    sample = gac_sample_create( &o2, &p2, timestamp2 );
+    sample = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
     count = gac_filter_gap( gap, samples, sample );
     mu_assert_int_eq( count, 1 );
     mu_assert_int_eq( samples->count, 2 );
@@ -258,12 +260,12 @@ MU_TEST( gap_2_fill_1 )
     double timestamp = 1000;
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
-    gac_sample_t* sample1 = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample1 = gac_sample_create( &s, &o, &p, timestamp, NULL );
 
     double timestamp2= 1033.333333;
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
-    gac_sample_t* sample2 = gac_sample_create( &o2, &p2, timestamp2 );
+    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
 
     count = gac_filter_gap( gap, samples, sample1 );
     mu_assert_int_eq( count, 1 );
@@ -311,12 +313,12 @@ MU_TEST( gap_2_fill_2 )
     double timestamp = 1000;
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
-    gac_sample_t* sample1 = gac_sample_create( &o, &p, timestamp );
+    gac_sample_t* sample1 = gac_sample_create( &s, &o, &p, timestamp, NULL );
 
     double timestamp2= 1050;
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
-    gac_sample_t* sample2 = gac_sample_create( &o2, &p2, timestamp2 );
+    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
 
     count = gac_filter_gap( gap, samples, sample1 );
     mu_assert_int_eq( count, 1 );

@@ -39,6 +39,8 @@ static float origins[SAMPLE_COUNT][3] =
     { 505, 504, 0 }
 };
 
+static float screen_point[2] = { 0, 0 };
+
 void avg( int start, int stop, float values[SAMPLE_COUNT][3], float avg[3] )
 {
     int i, count = 0;
@@ -96,7 +98,7 @@ MU_TEST_SUITE( h_init_suite )
 bool add_sample( gac_fixation_t* point )
 {
     timestamp += 1000.0 / 60;
-    gac_sample_t* sample = gac_sample_create( &origins[idx], &points[idx], timestamp );
+    gac_sample_t* sample = gac_sample_create( &screen_point, &origins[idx], &points[idx], timestamp, NULL );
     idx++;
 
     return gac_filter_fixation( fixation, sample, point );
