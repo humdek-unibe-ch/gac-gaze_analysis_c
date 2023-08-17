@@ -663,10 +663,7 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
         return;
     }
 
-    if( fixation->first_sample != NULL )
-    {
-        gac_sample_destroy( fixation->first_sample );
-    }
+    gac_sample_destroy( &fixation->first_sample );
 
     if( fixation->is_heap )
     {
@@ -687,7 +684,7 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
     fixation->duration = duration;
     glm_vec2_copy( *screen_point, fixation->screen_point );
     glm_vec3_copy( *point, fixation->point );
-    fixation->first_sample = gac_sample_copy( first_sample );
+    gac_sample_copy_to( &fixation->first_sample, first_sample );
 
     return true;
 }
@@ -959,15 +956,8 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
         return;
     }
 
-    if( saccade->first_sample != NULL )
-    {
-        gac_sample_destroy( saccade->first_sample );
-    }
-
-    if( saccade->last_sample != NULL )
-    {
-        gac_sample_destroy( saccade->last_sample );
-    }
+    gac_sample_destroy( &saccade->first_sample );
+    gac_sample_destroy( &saccade->last_sample );
 
     if( saccade->is_heap )
     {
@@ -985,8 +975,8 @@ bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
     }
 
     saccade->is_heap = false;
-    saccade->first_sample = gac_sample_copy( first_sample );
-    saccade->last_sample = gac_sample_copy( last_sample );
+    gac_sample_copy_to( &saccade->first_sample, first_sample );
+    gac_sample_copy_to( &saccade->last_sample, last_sample );
 
     return true;
 }
@@ -1000,6 +990,18 @@ gac_sample_t* gac_sample_copy( gac_sample_t* sample )
     }
 
     return gac_sample_create( &sample->screen_point, &sample->origin,
+            &sample->point, sample->timestamp, sample->trial_id, sample->label );
+}
+
+/******************************************************************************/
+bool gac_sample_copy_to( gac_sample_t* dest, gac_sample_t* sample )
+{
+    if( sample == NULL || dest == NULL )
+    {
+        return false;
+    }
+
+    return gac_sample_init( dest, &sample->screen_point, &sample->origin,
             &sample->point, sample->timestamp, sample->trial_id, sample->label );
 }
 

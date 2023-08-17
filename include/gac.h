@@ -96,7 +96,7 @@ struct gac_fixation_s
     /** The fixation duration in milliseconds. */
     double duration;
     /** The first sample of the fixation. */
-    gac_sample_t* first_sample;
+    gac_sample_t first_sample;
 };
 
 /**
@@ -107,9 +107,9 @@ struct gac_saccade_s
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
     /** The first sample of the saccade. */
-    gac_sample_t* first_sample;
+    gac_sample_t first_sample;
     /** The last sample of the saccade. */
-    gac_sample_t* last_sample;
+    gac_sample_t last_sample;
 };
 
 /**
@@ -922,6 +922,19 @@ gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
  *  A pointer to the new sample or NULL.
  */
 gac_sample_t* gac_sample_copy( gac_sample_t* sample );
+
+/**
+ * Deep copy of a sample to a target. This needs to be freed with
+ * gac_sample_destroy().
+ *
+ * @param dest
+ *  The location where the sample will be copied to.
+ * @param sample
+ *  The sample to copy
+ * @return
+ *  A pointer to the new sample or NULL.
+ */
+bool gac_sample_copy_to( gac_sample_t* dest, gac_sample_t* sample );
 
 /**
  * Destroy a sample structure.

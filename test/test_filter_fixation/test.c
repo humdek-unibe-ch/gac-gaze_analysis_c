@@ -164,7 +164,7 @@ MU_TEST( fixation_1 )
     mu_assert_double_eq( point_avg[1], point.point[1] );
     mu_assert_double_eq( point_avg[2], point.point[2] );
     mu_assert_double_eq( 7 * 1000.0 / 60, point.duration );
-    mu_assert_double_eq( 1000 + 3 * 1000.0 / 60, point.first_sample->timestamp );
+    mu_assert_double_eq( 1000 + 3 * 1000.0 / 60, point.first_sample.timestamp );
 }
 
 MU_TEST_SUITE( h_default_suite )
