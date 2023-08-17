@@ -323,6 +323,11 @@ struct gac_s
 gac_t* gac_create( gac_filter_parameter_t* parameter );
 
 /**
+ * The same as gac_create() but without setting any sample remove handler.
+ */
+gac_t* gac_create_no_rm( gac_filter_parameter_t* parameter );
+
+/**
  * Destroy the gaze analysis handler.
  *
  * @param h
@@ -350,6 +355,11 @@ void gac_destroy( gac_t* h );
  *  True on success, false on failure.
  */
 bool gac_init( gac_t* h, gac_filter_parameter_t* parameter );
+
+/**
+ * The same as gac_init() but without setting any sample remove handler.
+ */
+bool gac_init_no_rm( gac_t* h, gac_filter_parameter_t* parameter );
 
 /**
  * Get the filter parameters.
