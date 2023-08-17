@@ -98,7 +98,7 @@ void add_sample()
     timestamp += 1000.0 / 60;
     gac_sample_window_update( h, origins[idx][0], origins[idx][1],
             origins[idx][2], points[idx][0], points[idx][1], points[idx][2],
-            timestamp, NULL );
+            timestamp, 0, NULL );
     idx++;
 }
 

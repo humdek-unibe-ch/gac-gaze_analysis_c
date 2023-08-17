@@ -68,6 +68,8 @@ struct gac_sample_s
 {
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
+    /** The ID of a ongoing trial. */
+    uint32_t trial_id;
     /** The 2d gaze point on the screen. */
     vec2 screen_point;
     /** The gaze point. */
@@ -938,13 +940,15 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
  *  The gaze point vector.
  * @param timestamp
  *  The timestamp of the sample.
+ * @param trial_id
+ *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
  * @return
  *  The allocated sample structure or NULL on failure.
  */
 gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
-        double timestamp, const char* label );
+        double timestamp, uint32_t trial_id, const char* label );
 
 /**
  * Destroy a sample structure.
@@ -967,13 +971,15 @@ void gac_sample_destroy( void* sample );
  *  The gaze point vector.
  * @param timestamp
  *  The timestamp of the sample.
+ * @param trial_id
+ *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
  * @return
  *  True on success, false on failure.
  */
 bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp, const char* label );
+        vec3* point, double timestamp, uint32_t trial_id, const char* label );
 
 /**
  * Cleanup the sample window. This removes all sample data from the sample
@@ -1036,13 +1042,16 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade );
  *  The z coordinate of the gaze point.
  * @param timestamp
  *  The timestamp of the sample.
+ * @trial_id
+ *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
  * @return
  *  The number of new samples added to the window.
  */
-int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
-        float px, float py, float pz, double timestamp, const char* label );
+uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
+        float px, float py, float pz, double timestamp, uint32_t trial_id,
+        const char* label );
 
 /**
  * Update sample window with a new sample.
@@ -1057,13 +1066,15 @@ int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
  *  The gaze point.
  * @param timestamp
  *  The timestamp of the sample.
+ * @trial_id
+ *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
  * @return
  *  The number of new samples added to the window.
  */
-int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp, const char* label );
+uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
+        vec3* point, double timestamp, uint32_t trial_id, const char* label );
 
 /**
  * Update the sample window with a new sample. If noise filtering is enabled
@@ -1091,14 +1102,16 @@ int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
  *  The y coordinate of the screen gaze point.
  * @param timestamp
  *  The timestamp of the sample.
+ * @trial_id
+ *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
  * @return
  *  The number of new samples added to the window.
  */
-int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
+uint32_t gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, float sx, float sy, double timestamp,
-        const char* label );
+        uint32_t trial_id, const char* label );
 
 // SAMPLES /////////////////////////////////////////////////////////////////////
 

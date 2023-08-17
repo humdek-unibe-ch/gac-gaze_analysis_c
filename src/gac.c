@@ -344,7 +344,7 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
                 screen_point );
         new_sample = gac_sample_create( &screen_point, &origin, &point,
                 last_sample->timestamp + ( i + 1 ) * filter->sample_period,
-                sample->label );
+                sample->trial_id, sample->label );
         gac_queue_push( samples, new_sample );
     }
 
@@ -452,7 +452,7 @@ gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
     sample_mid = mid->data;
 
     return gac_sample_create( &screen_point, &origin, &point,
-            sample_mid->timestamp, sample_mid->label );
+            sample_mid->timestamp, sample_mid->trial_id, sample_mid->label );
 }
 
 /******************************************************************************/
@@ -1008,10 +1008,11 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
 
 /******************************************************************************/
 gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
-        double timestamp, const char* label )
+        double timestamp, uint32_t trial_id, const char* label )
 {
     gac_sample_t* sample = malloc( sizeof( gac_sample_t ) );
-    if( !gac_sample_init( sample, screen_point, origin, point, timestamp, label ) )
+    if( !gac_sample_init( sample, screen_point, origin, point, timestamp,
+                trial_id, label ) )
     {
         return NULL;
     }
@@ -1043,7 +1044,7 @@ void gac_sample_destroy( void* data )
 
 /******************************************************************************/
 bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp, const char* label )
+        vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
     if( sample == NULL )
     {
@@ -1059,6 +1060,7 @@ bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
     glm_vec3_copy( *screen_point, sample->screen_point );
     glm_vec3_copy( *origin, sample->origin );
     glm_vec3_copy( *point, sample->point );
+    sample->trial_id = trial_id;
     sample->timestamp = timestamp;
 
     return true;
@@ -1141,8 +1143,9 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
-int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
-        float px, float py, float pz, double timestamp, const char* label )
+uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
+        float px, float py, float pz, double timestamp, uint32_t trial_id,
+        const char* label )
 {
     vec2 screen_point;
     vec3 point;
@@ -1172,25 +1175,26 @@ int gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
     }
 
     return gac_sample_window_update_vec( h, &screen_point, &origin, &point,
-            timestamp, label );
+            timestamp, trial_id, label );
 }
 
 /******************************************************************************/
-int gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp, const char* label )
+uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
+        vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
     gac_sample_t* sample;
 
-    sample = gac_sample_create( screen_point, origin, point, timestamp, label );
+    sample = gac_sample_create( screen_point, origin, point, timestamp,
+            trial_id, label );
 
     sample = gac_filter_noise( &h->noise, sample );
     return gac_filter_gap( &h->gap, &h->samples, sample );
 }
 
 /******************************************************************************/
-int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
+uint32_t gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, float sx, float sy, double timestamp,
-        const char* label )
+        uint32_t trial_id, const char* label )
 {
     vec2 screen_point;
     vec3 point;
@@ -1206,7 +1210,7 @@ int gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
     point[2] = pz;
 
     return gac_sample_window_update_vec( h, &screen_point, &origin, &point,
-            timestamp, label );
+            timestamp, trial_id, label );
 }
 
 /******************************************************************************/

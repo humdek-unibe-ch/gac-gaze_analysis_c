@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 
         sprintf( id_str, "%d", id );
         count = gac_sample_window_update( &h, vals[3], vals[4], vals[5],
-                vals[0], vals[1], vals[2], vals[6], id_str );
+                vals[0], vals[1], vals[2], vals[6], id, id_str );
         for( i = 0; i < count; i++ )
         {
             res = gac_sample_window_fixation_filter( &h, &fixation );

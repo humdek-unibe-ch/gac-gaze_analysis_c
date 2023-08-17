@@ -98,7 +98,7 @@ MU_TEST_SUITE( h_init_suite )
 bool add_sample( gac_fixation_t* point )
 {
     timestamp += 1000.0 / 60;
-    gac_sample_t* sample = gac_sample_create( &screen_point, &origins[idx], &points[idx], timestamp, NULL );
+    gac_sample_t* sample = gac_sample_create( &screen_point, &origins[idx], &points[idx], timestamp, 0, NULL );
     idx++;
 
     return gac_filter_fixation( fixation, sample, point );

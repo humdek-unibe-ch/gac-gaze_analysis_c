@@ -60,7 +60,7 @@ MU_TEST( noise_1 )
     double timestamp = 1.12345;
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
-    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, 0, NULL );
     sample = gac_filter_noise( noise, sample );
     mu_check( sample == NULL );
 }
@@ -70,12 +70,12 @@ MU_TEST( noise_2 )
     double timestamp = 1.12345;
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
-    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, 0, NULL );
 
     double timestamp2= 2.12345;
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
-    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
+    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, 0, NULL );
 
     sample = gac_filter_noise( noise, sample );
     mu_check( sample == NULL );
@@ -89,17 +89,17 @@ MU_TEST( noise_3 )
     double timestamp = 1.12345;
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
-    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, 0, NULL );
 
     double timestamp2 = 2.12345;
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
-    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
+    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, 0, NULL );
 
     double timestamp3 = 3.12345;
     float o3[3] = { 0.4, 0.5, 0.6 };
     float p3[3] = { 0.7, 0.8, 0.9 };
-    gac_sample_t* sample3 = gac_sample_create( &s, &o3, &p3, timestamp3, NULL );
+    gac_sample_t* sample3 = gac_sample_create( &s, &o3, &p3, timestamp3, 0, NULL );
 
     sample = gac_filter_noise( noise, sample );
     mu_check( sample == NULL );
@@ -123,22 +123,22 @@ MU_TEST( noise_4 )
     double timestamp = 1.12345;
     float o[3] = { 0.1, 0.2, 0.3 };
     float p[3] = { 0.4, 0.5, 0.6 };
-    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, NULL );
+    gac_sample_t* sample = gac_sample_create( &s, &o, &p, timestamp, 0, NULL );
 
     double timestamp2 = 2.12345;
     float o2[3] = { 0.2, 0.3, 0.4 };
     float p2[3] = { 0.5, 0.6, 0.7 };
-    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, NULL );
+    gac_sample_t* sample2 = gac_sample_create( &s, &o2, &p2, timestamp2, 0, NULL );
 
     double timestamp3 = 3.12345;
     float o3[3] = { 0.4, 0.5, 0.6 };
     float p3[3] = { 0.7, 0.8, 0.9 };
-    gac_sample_t* sample3 = gac_sample_create( &s, &o3, &p3, timestamp3, NULL );
+    gac_sample_t* sample3 = gac_sample_create( &s, &o3, &p3, timestamp3, 0, NULL );
 
     double timestamp4 = 4.12345;
     float o4[3] = { 0.6, 0.7, 0.8 };
     float p4[3] = { 0.9, 0.9, 0.9 };
-    gac_sample_t* sample4 = gac_sample_create( &s, &o4, &p4, timestamp4, NULL );
+    gac_sample_t* sample4 = gac_sample_create( &s, &o4, &p4, timestamp4, 0, NULL );
 
     sample = gac_filter_noise( noise, sample );
     mu_check( sample == NULL );
