@@ -17,21 +17,6 @@ gac_t* gac_create( gac_filter_parameter_t* parameter )
 }
 
 /******************************************************************************/
-gac_t* gac_create_no_rm( gac_filter_parameter_t* parameter )
-{
-    gac_t* h = gac_create( parameter );
-
-    if( h == NULL )
-    {
-        return NULL;
-    }
-
-    h->samples.rm = NULL;
-
-    return h;
-}
-
-/******************************************************************************/
 void gac_destroy( gac_t* h )
 {
     if( h == NULL )
@@ -95,13 +80,6 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     gac_queue_set_rm_handler( &h->samples, gac_sample_destroy );
 
     return true;
-}
-
-/******************************************************************************/
-bool gac_init_no_rm( gac_t* h, gac_filter_parameter_t* parameter )
-{
-    return gac_init( h, parameter );
-    h->samples.rm = NULL;
 }
 
 /******************************************************************************/
