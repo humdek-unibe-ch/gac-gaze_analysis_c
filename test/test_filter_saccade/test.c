@@ -144,14 +144,14 @@ MU_TEST( saccade_1 )
     mu_check( res == false );
     res = add_sample( &point );
     mu_check( res == true );
-    mu_assert_double_eq( points[3][0], point.point_start[0] );
-    mu_assert_double_eq( points[3][1], point.point_start[1] );
-    mu_assert_double_eq( points[3][2], point.point_start[2] );
-    mu_assert_double_eq( points[5][0], point.point_dest[0] );
-    mu_assert_double_eq( points[5][1], point.point_dest[1] );
-    mu_assert_double_eq( points[5][2], point.point_dest[2] );
-    mu_assert_double_eq( 2 * 1000.0 / 60, point.duration );
-    mu_assert_double_eq( 1000 + 4 * 1000.0 / 60, point.timestamp );
+    mu_assert_double_eq( points[3][0], point.first_sample->point[0] );
+    mu_assert_double_eq( points[3][1], point.first_sample->point[1] );
+    mu_assert_double_eq( points[3][2], point.first_sample->point[2] );
+    mu_assert_double_eq( points[5][0], point.last_sample->point[0] );
+    mu_assert_double_eq( points[5][1], point.last_sample->point[1] );
+    mu_assert_double_eq( points[5][2], point.last_sample->point[2] );
+    mu_assert_double_eq( 2 * 1000.0 / 60, point.last_sample->timestamp - point.first_sample->timestamp );
+    mu_assert_double_eq( 1000 + 4 * 1000.0 / 60, point.first_sample->timestamp );
 }
 
 MU_TEST_SUITE( h_default_suite )

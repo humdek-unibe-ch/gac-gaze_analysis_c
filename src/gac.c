@@ -283,8 +283,7 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         {
             // fixation stop
             gac_fixation_init( fixation, &filter->screen_point, &filter->point,
-                    first_sample->timestamp, filter->duration,
-                    first_sample->label );
+                    filter->duration, first_sample );
             filter->is_collecting = false;
             if( action != NULL )
             {
@@ -625,9 +624,7 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
         // saccade stop
         s2 = s1;
         s1 = window->head->data;
-        gac_saccade_init( saccade, &s1->screen_point, &s2->screen_point,
-                &s1->point, &s2->point, s1->timestamp,
-                s2->timestamp - s1->timestamp, s1->label );
+        gac_saccade_init( saccade, s1, s2 );
         filter->is_collecting = false;
         if( action != NULL )
         {
@@ -645,11 +642,11 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
 
 /******************************************************************************/
 gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
-        double timestamp, double duration, const char* label )
+        double duration, gac_sample_t* first_sample )
 {
     gac_fixation_t* fixation = malloc( sizeof( gac_fixation_t ) );
-    if( !gac_fixation_init( fixation, screen_point, point, timestamp,
-                duration, label ) )
+    if( !gac_fixation_init( fixation, screen_point, point,
+                duration, first_sample ) )
     {
         return NULL;
     }
@@ -666,9 +663,9 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
         return;
     }
 
-    if( fixation->label != NULL )
+    if( fixation->first_sample != NULL )
     {
-        free( fixation->label );
+        gac_sample_destroy( fixation->first_sample );
     }
 
     if( fixation->is_heap )
@@ -679,7 +676,7 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
 
 /******************************************************************************/
 bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
-        vec3* point, double timestamp, double duration, const char* label )
+        vec3* point, double duration, gac_sample_t* first_sample )
 {
     if( fixation == NULL )
     {
@@ -690,12 +687,7 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
     fixation->duration = duration;
     glm_vec2_copy( *screen_point, fixation->screen_point );
     glm_vec3_copy( *point, fixation->point );
-    fixation->timestamp = timestamp;
-    fixation->label = NULL;
-    if( label != NULL )
-    {
-        fixation->label = strdup( label );
-    }
+    fixation->first_sample = gac_sample_copy( first_sample );
 
     return true;
 }
@@ -946,13 +938,11 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ))
 }
 
 /******************************************************************************/
-gac_saccade_t* gac_saccade_create( vec2* screen_point_start,
-        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
-        double timestamp, double duration, const char* label )
+gac_saccade_t* gac_saccade_create( gac_sample_t* first_sample,
+        gac_sample_t* last_sample )
 {
     gac_saccade_t* saccade = malloc( sizeof( gac_fixation_t ) );
-    if( !gac_saccade_init( saccade, screen_point_start, screen_point_dest,
-                point_start, point_dest, timestamp, duration, label ) )
+    if( !gac_saccade_init( saccade, first_sample, last_sample ) )
     {
         return NULL;
     }
@@ -969,9 +959,14 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
         return;
     }
 
-    if( saccade->label != NULL )
+    if( saccade->first_sample != NULL )
     {
-        free( saccade->label );
+        gac_sample_destroy( saccade->first_sample );
+    }
+
+    if( saccade->last_sample != NULL )
+    {
+        gac_sample_destroy( saccade->last_sample );
     }
 
     if( saccade->is_heap )
@@ -981,9 +976,8 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
-bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
-        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
-        double timestamp, double duration, const char* label )
+bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
+        gac_sample_t* last_sample )
 {
     if( saccade == NULL )
     {
@@ -991,19 +985,22 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
     }
 
     saccade->is_heap = false;
-    saccade->duration = duration;
-    glm_vec2_copy( *screen_point_start, saccade->screen_point_start );
-    glm_vec2_copy( *screen_point_dest, saccade->screen_point_dest );
-    glm_vec3_copy( *point_start, saccade->point_start );
-    glm_vec3_copy( *point_dest, saccade->point_dest );
-    saccade->timestamp = timestamp;
-    saccade->label = NULL;
-    if( label != NULL )
-    {
-        saccade->label = strdup( label );
-    }
+    saccade->first_sample = gac_sample_copy( first_sample );
+    saccade->last_sample = gac_sample_copy( last_sample );
 
     return true;
+}
+
+/******************************************************************************/
+gac_sample_t* gac_sample_copy( gac_sample_t* sample )
+{
+    if( sample == NULL )
+    {
+        return NULL;
+    }
+
+    return gac_sample_create( &sample->screen_point, &sample->origin,
+            &sample->point, sample->timestamp, sample->trial_id, sample->label );
 }
 
 /******************************************************************************/

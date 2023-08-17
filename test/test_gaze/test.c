@@ -221,14 +221,14 @@ MU_TEST( h_filter )
     res = gac_sample_window_saccade_filter( h, &saccade );
     mu_check( h->saccade.is_collecting == false );
     mu_check( res == true );
-    mu_assert_double_eq( points[3][0], saccade.point_start[0] );
-    mu_assert_double_eq( points[3][1], saccade.point_start[1] );
-    mu_assert_double_eq( points[3][2], saccade.point_start[2] );
-    mu_assert_double_eq( points[5][0], saccade.point_dest[0] );
-    mu_assert_double_eq( points[5][1], saccade.point_dest[1] );
-    mu_assert_double_eq( points[5][2], saccade.point_dest[2] );
-    mu_assert_double_eq( 2 * 1000.0 / 60, saccade.duration );
-    mu_assert_double_eq( 1000 + 4 * 1000.0 / 60, saccade.timestamp );
+    mu_assert_double_eq( points[3][0], saccade.first_sample->point[0] );
+    mu_assert_double_eq( points[3][1], saccade.first_sample->point[1] );
+    mu_assert_double_eq( points[3][2], saccade.first_sample->point[2] );
+    mu_assert_double_eq( points[5][0], saccade.last_sample->point[0] );
+    mu_assert_double_eq( points[5][1], saccade.last_sample->point[1] );
+    mu_assert_double_eq( points[5][2], saccade.last_sample->point[2] );
+    mu_assert_double_eq( 2 * 1000.0 / 60, saccade.last_sample->timestamp - saccade.first_sample->timestamp );
+    mu_assert_double_eq( 1000 + 4 * 1000.0 / 60, saccade.first_sample->timestamp );
 
     add_sample();
     res = gac_sample_window_fixation_filter( h, &fixation );
@@ -311,7 +311,7 @@ MU_TEST( h_filter )
     mu_assert_double_eq( point_avg[1], fixation.point[1] );
     mu_assert_double_eq( point_avg[2], fixation.point[2] );
     mu_assert_double_eq( 10 * 1000.0 / 60, fixation.duration );
-    mu_assert_double_eq( 1000 + 6 * 1000.0 / 60, fixation.timestamp );
+    mu_assert_double_eq( 1000 + 6 * 1000.0 / 60, fixation.first_sample->timestamp );
     res = gac_sample_window_saccade_filter( h, &saccade );
     mu_check( h->saccade.is_collecting == true );
     mu_check( res == false );
@@ -323,14 +323,14 @@ MU_TEST( h_filter )
     res = gac_sample_window_saccade_filter( h, &saccade );
     mu_check( h->saccade.is_collecting == false );
     mu_check( res == true );
-    mu_assert_double_eq( points[15][0], saccade.point_start[0] );
-    mu_assert_double_eq( points[15][1], saccade.point_start[1] );
-    mu_assert_double_eq( points[15][2], saccade.point_start[2] );
-    mu_assert_double_eq( points[16][0], saccade.point_dest[0] );
-    mu_assert_double_eq( points[16][1], saccade.point_dest[1] );
-    mu_assert_double_eq( points[16][2], saccade.point_dest[2] );
-    mu_assert_double_eq( 1000.0 / 60, saccade.duration );
-    mu_assert_double_eq( 1000 + 16 * 1000.0 / 60, saccade.timestamp );
+    mu_assert_double_eq( points[15][0], saccade.first_sample->point[0] );
+    mu_assert_double_eq( points[15][1], saccade.first_sample->point[1] );
+    mu_assert_double_eq( points[15][2], saccade.first_sample->point[2] );
+    mu_assert_double_eq( points[16][0], saccade.last_sample->point[0] );
+    mu_assert_double_eq( points[16][1], saccade.last_sample->point[1] );
+    mu_assert_double_eq( points[16][2], saccade.last_sample->point[2] );
+    mu_assert_double_eq( 1000.0 / 60, saccade.last_sample->timestamp - saccade.first_sample->timestamp );
+    mu_assert_double_eq( 1000 + 16 * 1000.0 / 60, saccade.first_sample->timestamp );
 }
 
 MU_TEST_SUITE( h_default_suite )

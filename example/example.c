@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
             res = gac_sample_window_fixation_filter( &h, &fixation );
             if( res == true )
             {
-                printf( "%f fixation(%s): [%f, %f, %f], %f\n", fixation.timestamp, fixation.label,
+                printf( "%f fixation(%s): [%f, %f, %f], %f\n", fixation.first_sample->timestamp, fixation.first_sample->label,
                         fixation.point[0], fixation.point[1], fixation.point[2],
                         fixation.duration );
                 gac_fixation_destroy( &fixation );
@@ -77,10 +77,10 @@ int main(int argc, char* argv[])
             if( res == true )
             {
                 printf( "%f saccade(%s): [%f, %f, %f] -> [%f, %f, %f], %f\n",
-                        saccade.timestamp, saccade.label,
-                        saccade.point_start[0], saccade.point_start[1], saccade.point_start[2],
-                        saccade.point_dest[0], saccade.point_dest[1], saccade.point_dest[2],
-                        saccade.duration );
+                        saccade.first_sample->timestamp, saccade.first_sample->label,
+                        saccade.first_sample->point[0], saccade.first_sample->point[1], saccade.first_sample->point[2],
+                        saccade.last_sample->point[0], saccade.last_sample->point[1], saccade.last_sample->point[2],
+                        saccade.last_sample->timestamp - saccade.first_sample->timestamp );
                 gac_saccade_destroy( &saccade );
             }
         }

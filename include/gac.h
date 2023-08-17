@@ -91,14 +91,12 @@ struct gac_fixation_s
     bool is_heap;
     /** The 2d fixation gaze point on the screen. */
     vec2 screen_point;
-    /** The fixation gaze point */
+    /** The fixation gaze point. */
     vec3 point;
-    /** The fixation duration in milliseconds */
+    /** The fixation duration in milliseconds. */
     double duration;
-    /** The timestamp of the fixation start */
-    double timestamp;
-    /** label of the first sample in the fixation. */
-    char* label;
+    /** The first sample of the fixation. */
+    gac_sample_t* first_sample;
 };
 
 /**
@@ -108,20 +106,10 @@ struct gac_saccade_s
 {
     /** Flag to indicate whether the struct was allocated on the heap. */
     bool is_heap;
-    /** The 2d screen start point of the saccade */
-    vec2 screen_point_start;
-    /** The 2d screen end point of the saccade */
-    vec2 screen_point_dest;
-    /** The start point of the saccade */
-    vec3 point_start;
-    /** The end point of the saccade */
-    vec3 point_dest;
-    /** The sacacde duration */
-    double duration;
-    /** The timestamp of the first saccade point */
-    double timestamp;
-    /** label of the first sample in the saccade. */
-    char* label;
+    /** The first sample of the saccade. */
+    gac_sample_t* first_sample;
+    /** The last sample of the saccade. */
+    gac_sample_t* last_sample;
 };
 
 /**
@@ -708,17 +696,15 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
  *  The fixation screen point.
  * @param point
  *  The fixation point.
- * @param timestamp
- *  The timestamp of the fixation start.
  * @param duration
  *  The duration of the fixation.
- * @param label
- *  The label of the first sample in the fixation.
+ * @param first_sample
+ *  The first sample in the fixation.
  * @return
  *  The allocated fixation structure or NULL on failure.
  */
 gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
-        double timestamp, double duration, const char* label );
+        double duration, gac_sample_t* first_sample );
 
 /**
  * Destroy a fixation structure.
@@ -737,17 +723,15 @@ void gac_fixation_destroy( gac_fixation_t* fixation );
  *  The fixation screen point.
  * @param point
  *  The fixation point.
- * @param timestamp
- *  The timestamp of the fixation start.
  * @param duration
  *  The duration of the fixation.
- * @param label
- *  The label of the first sample in the fixation.
+ * @param first_sample
+ *  The first sample in the fixation.
  * @return
  *  True on success, false on failure.
  */
 bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
-        vec3* point, double timestamp, double duration, const char* label );
+        vec3* point, double duration, gac_sample_t* first_sample );
 
 /**
  * Compute a dispersion threashold assuming a unit distance. To get the actual
@@ -872,26 +856,15 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ));
 /**
  * Allocate a new saccade structure on the heap. This needs to be freed.
  *
- * @param screen_point_start
- *  The first 2d screen gaze point in a saccade.
- * @param screen_point_dest
- *  The last 2d screen gaze point in a saccade.
- * @param point_start
- *  The first data point in a saccade.
- * @param point_dest
- *  The last data point in a saccade.
- * @param timestamp
- *  The timestamp of the beggining of the saccade.
- * @param duration
- *  The duration of the saccade.
- * @param label
- *  The label of the first sample in the saccade.
+ * @param first_sample
+ *  The first sample of the saccade, holding the source point.
+ * @param last_sample
+ *  The last sample of the saccade, holding the target point.
  * @return
  *  The allocated saccade structure on success or NULL on failure.
  */
-gac_saccade_t* gac_saccade_create( vec2* screen_point_start,
-        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
-        double timestamp, double duration, const char* label );
+gac_saccade_t* gac_saccade_create( gac_sample_t* first_sample,
+        gac_sample_t* last_sample );
 
 /**
  * Destroy a saccade structure.
@@ -906,26 +879,15 @@ void gac_saccade_destroy( gac_saccade_t* saccade );
  *
  * @param saccade
  *  A pointer to the saccade structure to initialise.
- * @param screen_point_start
- *  The first 2d screen gaze point in a saccade.
- * @param screen_point_dest
- *  The last 2d screen gaze point in a saccade.
- * @param point_start
- *  The first gaze point in a saccade.
- * @param point_dest
- *  The last gaze point in a saccade.
- * @param timestamp
- *  The timestamp of the beggining of the saccade.
- * @param duration
- *  The duration of the saccade.
- * @param label
- *  The label of the first sample in the saccade.
+ * @param first_sample
+ *  The first sample of the saccade, holding the source point.
+ * @param last_sample
+ *  The last sample of the saccade, holding the target point.
  * @return
  *  True on success, false on failure.
  */
-bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
-        vec2* screen_point_dest, vec3* point_start, vec3* point_dest,
-        double timestamp, double duration, const char* label );
+bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
+        gac_sample_t* last_sample );
 
 // SAMPLE //////////////////////////////////////////////////////////////////////
 
@@ -949,6 +911,17 @@ bool gac_saccade_init( gac_saccade_t* saccade, vec2* screen_point_start,
  */
 gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
         double timestamp, uint32_t trial_id, const char* label );
+
+/**
+ * Create a deep copy of a sample. This needs to be freed with
+ * gac_sample_destroy().
+ *
+ * @param sample
+ *  The sample to copy
+ * @return
+ *  A pointer to the new sample or NULL.
+ */
+gac_sample_t* gac_sample_copy( gac_sample_t* sample );
 
 /**
  * Destroy a sample structure.
