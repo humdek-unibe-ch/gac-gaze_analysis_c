@@ -158,25 +158,7 @@ bool gac_set_screen( gac_t* h, bool is_normalized,
 bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
         gac_fixation_t* fixation )
 {
-    bool res;
-    gac_filter_step_action_t action;
-
-    gac_queue_push( &filter->window, sample );
-    res = gac_filter_fixation_step( filter, sample, fixation, &action );
-
-    switch( action )
-    {
-        case GAC_FILTER_STEP_ACTION_SHRINK:
-            gac_queue_remove( &filter->window );
-            break;
-        case GAC_FILTER_STEP_ACTION_CLEAR:
-            gac_queue_clear( &filter->window );
-            break;
-        default:
-            break;
-    }
-
-    return res;
+    return gac_filter_fixation_step( filter, sample, fixation );
 }
 
 /******************************************************************************/
@@ -221,6 +203,7 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
 
     filter->is_heap = false;
     filter->duration = 0;
+    filter->new_samples = 0;
     glm_vec2_zero( filter->screen_point );
     glm_vec3_zero( filter->point );
     filter->is_collecting = false;
@@ -235,8 +218,7 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
 
 /******************************************************************************/
 bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
-        gac_sample_t* sample, gac_fixation_t* fixation,
-        gac_filter_step_action_t* action )
+        gac_sample_t* sample, gac_fixation_t* fixation )
 {
     double duration;
     float dispersion, dispersion_threshold, distance;
@@ -246,20 +228,30 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     gac_sample_t* first_sample;
     gac_queue_t* window;
 
-    if( action != NULL )
-    {
-        *action = GAC_FILTER_STEP_ACTION_NONE;
-    }
-
     if( fixation == NULL || sample == NULL || filter == NULL )
     {
         return false;
     }
     window = &filter->window;
+    gac_queue_push( window, sample );
 
     first_sample = window->head->data;
     duration = sample->timestamp - first_sample->timestamp;
-    if( duration >= filter->duration_threshold )
+    if( duration < 0 )
+    {
+        if( filter->duration >= filter->duration_threshold
+                && filter->is_collecting )
+        {
+            goto fixation_stop;
+        }
+        else
+        {
+            filter->is_collecting = false;
+            gac_queue_clear( window );
+            return false;
+        }
+    }
+    else if( duration >= filter->duration_threshold )
     {
         gac_samples_dispersion( window, &dispersion, 0 );
         gac_samples_average_origin( window, &origin, 0 );
@@ -281,23 +273,23 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
         }
         else if( filter->is_collecting )
         {
-            // fixation stop
-            gac_fixation_init( fixation, &filter->screen_point, &filter->point,
-                    filter->duration, first_sample );
-            filter->is_collecting = false;
-            if( action != NULL )
-            {
-                *action = GAC_FILTER_STEP_ACTION_CLEAR;
-            }
-            return true;
+            goto fixation_stop;
         }
-        else if( action != NULL )
+        else
         {
-            *action = GAC_FILTER_STEP_ACTION_SHRINK;
+            gac_queue_remove( window );
         }
     }
 
     return false;
+
+fixation_stop:
+    gac_fixation_init( fixation, &filter->screen_point, &filter->point,
+            filter->duration, first_sample );
+    filter->is_collecting = false;
+    gac_queue_clear( window );
+    return true;
+
 }
 
 /******************************************************************************/
@@ -506,25 +498,7 @@ bool gac_filter_noise_init( gac_filter_noise_t* filter,
 bool gac_filter_saccade( gac_filter_saccade_t* filter, gac_sample_t* sample,
         gac_saccade_t* saccade )
 {
-    bool res;
-    gac_filter_step_action_t action;
-
-    gac_queue_push( &filter->window, sample );
-    res = gac_filter_saccade_step( filter, sample, saccade, &action );
-
-    switch( action )
-    {
-        case GAC_FILTER_STEP_ACTION_CLEAR:
-            gac_queue_clear( &filter->window );
-            break;
-        case GAC_FILTER_STEP_ACTION_SHRINK:
-            gac_queue_remove( &filter->window );
-            break;
-        default:
-            break;
-    }
-
-    return res;
+    return gac_filter_saccade_step( filter, sample, saccade );
 }
 
 /******************************************************************************/
@@ -567,6 +541,7 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
     filter->is_heap = false;
     filter->is_collecting = false;
     filter->velocity_threshold = velocity_threshold;
+    filter->new_samples = 0;
     gac_queue_init( &filter->window, 0 );
     gac_queue_set_rm_handler( &filter->window, gac_sample_destroy );
 
@@ -575,7 +550,7 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
 
 /******************************************************************************/
 bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
-        gac_saccade_t* saccade, gac_filter_step_action_t* action )
+        gac_saccade_t* saccade )
 {
     gac_sample_t* s1;
     gac_sample_t* s2;
@@ -585,16 +560,13 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
     float angle;
     float velocity;
     gac_queue_t* window;
-    if( action != NULL )
-    {
-        *action = GAC_FILTER_STEP_ACTION_NONE;
-    }
 
     if( filter == NULL || saccade == NULL || sample == NULL )
     {
         return false;
     }
     window = &filter->window;
+    gac_queue_push( window, sample );
 
     if( window->count < 2 )
     {
@@ -626,15 +598,12 @@ bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample
         s1 = window->head->data;
         gac_saccade_init( saccade, s1, s2 );
         filter->is_collecting = false;
-        if( action != NULL )
-        {
-            *action = GAC_FILTER_STEP_ACTION_CLEAR;
-        }
+        gac_queue_clear( window );
         return true;
     }
-    else if( action != NULL )
+    else
     {
-        *action = GAC_FILTER_STEP_ACTION_SHRINK;
+        gac_queue_remove( window );
     }
 
     return false;
@@ -1080,65 +1049,47 @@ bool gac_sample_window_cleanup( gac_t* h )
 /******************************************************************************/
 bool gac_sample_window_fixation_filter( gac_t* h, gac_fixation_t* fixation )
 {
+    uint32_t i;
+    gac_queue_item_t* current;
     gac_sample_t* sample;
-    gac_filter_step_action_t action;
-    bool res;
 
     if( fixation == NULL || h == NULL || h->samples.count == 0 )
     {
         return false;
     }
 
-    sample = h->samples.tail->data;
-
-    gac_queue_push( &h->fixation.window, sample );
-    res = gac_filter_fixation_step( &h->fixation, sample, fixation, &action );
-
-    switch( action )
+    current = h->samples.tail;
+    for( i = 0; i < h->fixation.new_samples - 1; i++ )
     {
-        case GAC_FILTER_STEP_ACTION_CLEAR:
-            gac_queue_clear( &h->fixation.window );
-            break;
-        case GAC_FILTER_STEP_ACTION_SHRINK:
-            gac_queue_remove( &h->fixation.window );
-            break;
-        default:
-            break;
+        current = current->next;
     }
+    sample = current->data;
+    h->fixation.new_samples--;
 
-    return res;
+    return gac_filter_fixation_step( &h->fixation, sample, fixation );
 }
 
 /******************************************************************************/
 bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade )
 {
-    gac_filter_step_action_t action;
+    uint32_t i;
+    gac_queue_item_t* current;
     gac_sample_t* sample;
-    bool res;
 
     if( h == NULL || saccade == NULL || h->samples.count == 0 )
     {
         return false;
     }
 
-    sample = h->samples.tail->data;
-
-    gac_queue_push( &h->saccade.window, sample );
-    res = gac_filter_saccade_step( &h->saccade, sample, saccade, &action );
-
-    switch( action )
+    current = h->samples.tail;
+    for( i = 0; i < h->saccade.new_samples - 1; i++ )
     {
-        case GAC_FILTER_STEP_ACTION_CLEAR:
-            gac_queue_clear( &h->saccade.window );
-            break;
-        case GAC_FILTER_STEP_ACTION_SHRINK:
-            gac_queue_remove( &h->saccade.window );
-            break;
-        default:
-            break;
+        current = current->next;
     }
+    sample = current->data;
+    h->saccade.new_samples--;
 
-    return res;
+    return gac_filter_saccade_step( &h->saccade, sample, saccade );
 }
 
 /******************************************************************************/
@@ -1181,13 +1132,18 @@ uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
 uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origin,
         vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
+    uint32_t count;
     gac_sample_t* sample;
 
     sample = gac_sample_create( screen_point, origin, point, timestamp,
             trial_id, label );
 
     sample = gac_filter_noise( &h->noise, sample );
-    return gac_filter_gap( &h->gap, &h->samples, sample );
+    count = gac_filter_gap( &h->gap, &h->samples, sample );
+    h->fixation.new_samples = count;
+    h->saccade.new_samples = count;
+
+    return count;
 }
 
 /******************************************************************************/

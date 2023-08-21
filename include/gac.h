@@ -49,19 +49,6 @@ enum gac_filter_noise_type_e
 typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
 
 /**
- * Actions to perform on the fixation sample window after fixation step.
- */
-enum gac_filter_step_action_e
-{
-    GAC_FILTER_STEP_ACTION_SHRINK,
-    GAC_FILTER_STEP_ACTION_CLEAR,
-    GAC_FILTER_STEP_ACTION_NONE
-};
-
-/** #gac_filter_step_action_e */
-typedef enum gac_filter_step_action_e gac_filter_step_action_t;
-
-/**
  * The gaze data sample.
  */
 struct gac_sample_s
@@ -155,10 +142,12 @@ struct gac_filter_fixation_s
     double normalized_dispersion_threshold;
     /** The duration threashold */
     double duration_threshold;
-    /** A flag indicating whether a fixation is ongoing */
+    /** A flag indicating whether a fixation is ongoing. */
     bool is_collecting;
     /** A pointer to the sample queue */
     gac_queue_t window;
+    /** Counter to keep track of new items in the parent queue. */
+    uint32_t new_samples;
     /** The fixation duration */
     double duration;
     /** The fixation screen point */
@@ -178,6 +167,8 @@ struct gac_filter_saccade_s
     float velocity_threshold;
     /** A flag indicating whether a saccade is ongoing */
     bool is_collecting;
+    /** Counter to keep track of new items in the parent queue. */
+    uint32_t new_samples;
     /** A pointer to the sample queue */
     gac_queue_t window;
 };
@@ -483,15 +474,11 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
  * @param fixation
  *  A location where a detected fixation is stored. This is only valid if the
  *  function returns true.
- * @param action
- *  An action code indicating to the parent function which action to perform
- *  on the sample window.
  * @return
  *  True if a fixation was detected, false otherwise.
  */
 bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
-        gac_sample_t* sample, gac_fixation_t* fixation,
-        gac_filter_step_action_t* action );
+        gac_sample_t* sample, gac_fixation_t* fixation );
 
 /**
  * Fill in gaps between the last sample and the current sample if any.
@@ -677,14 +664,11 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
  * @param saccade
  *  A location where a detected saccade is stored. This is only valid if the
  *  function returns true.
- * @param action
- *  An action code indicating to the parent function which action to perform
- *  on the sample window.
  * @return
  *  True if a saccade was detected, false otherwise.
  */
 bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
-        gac_saccade_t* saccade, gac_filter_step_action_t* action );
+        gac_saccade_t* saccade );
 
 // FIXATION ////////////////////////////////////////////////////////////////////
 
