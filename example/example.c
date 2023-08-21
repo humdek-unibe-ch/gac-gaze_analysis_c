@@ -2,6 +2,7 @@
 #include <csv.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 void csv_cb( void* s, size_t len, void* data )
 {
@@ -11,13 +12,23 @@ void csv_cb( void* s, size_t len, void* data )
     (*vals)++;
 }
 
+bool atob( const char* a )
+{
+    if( a == NULL || strcmp( a, "True" ) == 0 || strcmp( a, "true" ) == 0 || strcmp( a, "TRUE" ) == 0 )
+    {
+        return true;
+    }
+
+    return false;
+}
+
 int main(int argc, char* argv[])
 {
     gac_t h;
     bool first = true;
     int rc, len, count, i, id = 0;
     gac_filter_parameter_t params;
-    char line[1000];
+    char line[10000];
     struct csv_parser p;
     FILE* fp;
     char id_str[16];
@@ -25,7 +36,7 @@ int main(int argc, char* argv[])
     gac_fixation_t fixation;
     gac_saccade_t saccade;
     bool res;
-    void* vals[11];
+    void* vals[100];
     void* vals_ptr;
 
     if( argc == 2 )
@@ -39,14 +50,14 @@ int main(int argc, char* argv[])
 
     params.fixation.dispersion_threshold = 0.5;
     params.fixation.duration_threshold = 100;
-    params.saccade.velocity_threshold = 25;
-    params.noise.mid_idx = 0; // noise filter disabled
+    params.saccade.velocity_threshold = 20;
+    params.noise.mid_idx = 1;
     params.noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
-    params.gap.max_gap_length = 0; // gap filter disabled
+    params.gap.max_gap_length = 100;
     params.gap.sample_period = 1000.0/60.0;
     gac_init( &h, &params );
 
-    while( fgets( line, 1000, fp ) )
+    while( fgets( line, 10000, fp ) )
     {
         if( first )
         {
@@ -66,10 +77,18 @@ int main(int argc, char* argv[])
         csv_fini( &p, csv_cb, NULL, &vals_ptr );
         csv_free( &p );
 
+        if( !atob( vals[11] ) || !atob( vals[12] ) || !atob( vals[13] ) )
+        {
+            continue;
+        }
+
         sprintf( id_str, "%d", id );
-        count = gac_sample_window_update( &h, atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
-                atof( vals[2] ), atof( vals[3] ), atof( vals[4] ), atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        for( i = 0; i < 11; i++ )
+        count = gac_sample_window_update_screen( &h,
+                atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
+                atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
+                atof( vals[0] ), atof( vals[1] ),
+                atof( vals[8] ), atoi( vals[9] ), vals[10] );
+        for( i = 0; i < 100; i++ )
         {
             free( vals[i] );
         }
