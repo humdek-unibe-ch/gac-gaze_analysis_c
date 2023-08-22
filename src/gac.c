@@ -30,6 +30,7 @@ void gac_destroy( gac_t* h )
     gac_filter_gap_destroy( &h->gap );
     gac_filter_noise_destroy( &h->noise );
     gac_screen_destroy( h->screen );
+    gac_sample_destroy( h->last_sample );
 
     if( h->is_heap )
     {
@@ -48,6 +49,7 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     h->screen = NULL;
     h->is_heap = false;
     h->is_normalized = true;
+    h->last_sample = NULL;
     gac_get_filter_parameter_default( &h->parameter );
 
     if( parameter != NULL )
@@ -305,6 +307,7 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
     vec3 point;
     vec3 origin;
     double factor;
+    double delta;
 
     if( sample == NULL )
     {
@@ -329,13 +332,16 @@ uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
     for( i = 0; i < sample_count; i++ )
     {
         factor = ( i + 1.0 ) / ( sample_count + 1.0 );
+        delta = ( i + 1 ) * filter->sample_period;
         glm_vec3_lerp( last_sample->origin, sample->origin, factor, origin );
         glm_vec3_lerp( last_sample->point, sample->point, factor, point );
         glm_vec2_lerp( last_sample->screen_point, sample->screen_point, factor,
                 screen_point );
         new_sample = gac_sample_create( &screen_point, &origin, &point,
-                last_sample->timestamp + ( i + 1 ) * filter->sample_period,
+                last_sample->timestamp + delta,
                 sample->trial_id, sample->label );
+        new_sample->label_onset = sample->label_onset + delta;
+        new_sample->trial_onset = sample->trial_onset + delta;
         gac_queue_push( samples, new_sample );
     }
 
@@ -424,7 +430,8 @@ gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
 gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
 {
     uint32_t count = 0;
-    gac_sample_t* sample_mid = sample_mid;
+    gac_sample_t* sample_mid;
+    gac_sample_t* sample_new;
     gac_queue_item_t* mid;
     vec2 screen_point;
     vec3 point;
@@ -442,8 +449,12 @@ gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter )
     }
     sample_mid = mid->data;
 
-    return gac_sample_create( &screen_point, &origin, &point,
+    sample_new = gac_sample_create( &screen_point, &origin, &point,
             sample_mid->timestamp, sample_mid->trial_id, sample_mid->label );
+    sample_new->label_onset = sample_mid->label_onset;
+    sample_new->trial_onset = sample_mid->trial_onset;
+
+    return sample_new;
 }
 
 /******************************************************************************/
@@ -953,25 +964,38 @@ bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
 /******************************************************************************/
 gac_sample_t* gac_sample_copy( gac_sample_t* sample )
 {
+    gac_sample_t* new_sample;
+
     if( sample == NULL )
     {
         return NULL;
     }
 
-    return gac_sample_create( &sample->screen_point, &sample->origin,
+    new_sample = gac_sample_create( &sample->screen_point, &sample->origin,
             &sample->point, sample->timestamp, sample->trial_id, sample->label );
+
+    new_sample->label_onset = sample->label_onset;
+    new_sample->trial_onset = sample->trial_onset;
+
+    return new_sample;
 }
 
 /******************************************************************************/
 bool gac_sample_copy_to( gac_sample_t* dest, gac_sample_t* sample )
 {
+    bool res;
     if( sample == NULL || dest == NULL )
     {
         return false;
     }
 
-    return gac_sample_init( dest, &sample->screen_point, &sample->origin,
+    res = gac_sample_init( dest, &sample->screen_point, &sample->origin,
             &sample->point, sample->timestamp, sample->trial_id, sample->label );
+
+    dest->label_onset = sample->label_onset;
+    dest->trial_onset = sample->trial_onset;
+
+    return res;
 }
 
 /******************************************************************************/
@@ -1030,6 +1054,8 @@ bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
     glm_vec3_copy( *point, sample->point );
     sample->trial_id = trial_id;
     sample->timestamp = timestamp;
+    sample->label_onset = 0;
+    sample->trial_onset = 0;
 
     return true;
 }
@@ -1133,15 +1159,38 @@ uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origi
         vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
     uint32_t count;
+    double time_delta;
     gac_sample_t* sample;
 
     sample = gac_sample_create( screen_point, origin, point, timestamp,
             trial_id, label );
 
+    if( h->last_sample != NULL )
+    {
+        time_delta = timestamp - h->last_sample->timestamp;
+        if( time_delta > 0 )
+        {
+            if( trial_id == h->last_sample->trial_id )
+            {
+                sample->trial_onset = h->last_sample->trial_onset + time_delta;
+            }
+
+            if( label != NULL && h->last_sample->label != NULL
+                    && strcmp( label, h->last_sample->label ) == 0 )
+            {
+                sample->label_onset = h->last_sample->label_onset + time_delta;
+            }
+        }
+    }
+
     sample = gac_filter_noise( &h->noise, sample );
     count = gac_filter_gap( &h->gap, &h->samples, sample );
     h->fixation.new_samples = count;
     h->saccade.new_samples = count;
+    if( h->samples.tail != NULL )
+    {
+        h->last_sample = gac_sample_copy( h->samples.tail->data );
+    }
 
     return count;
 }

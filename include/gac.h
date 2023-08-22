@@ -65,6 +65,10 @@ struct gac_sample_s
     vec3 origin;
     /** The sample timestamp. */
     double timestamp;
+    /** The time in milliseconds since the last change of trial ID. */
+    double trial_onset;
+    /** The time in milliseconds since the last change of label. */
+    double label_onset;
     /** Arbitrary label to annotate the sample. */
     char* label;
 };
@@ -297,6 +301,11 @@ struct gac_s
     gac_filter_parameter_t parameter;
     /** The screen information. */
     gac_screen_t* screen;
+    /**
+     * The last sample entered to the window. This remains even if the sample
+     * window is cleared.
+     */
+    gac_sample_t* last_sample;
 };
 
 // HANDLER /////////////////////////////////////////////////////////////////////
@@ -1012,7 +1021,7 @@ bool gac_sample_window_saccade_filter( gac_t* h, gac_saccade_t* saccade );
  *  The z coordinate of the gaze point.
  * @param timestamp
  *  The timestamp of the sample.
- * @trial_id
+ * @param trial_id
  *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
@@ -1036,7 +1045,7 @@ uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
  *  The gaze point.
  * @param timestamp
  *  The timestamp of the sample.
- * @trial_id
+ * @param trial_id
  *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
@@ -1072,7 +1081,7 @@ uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origi
  *  The y coordinate of the screen gaze point.
  * @param timestamp
  *  The timestamp of the sample.
- * @trial_id
+ * @param trial_id
  *  The ID of the ongoing trial.
  * @param label
  *  An optional arbitrary label annotating the sample.
@@ -1198,8 +1207,8 @@ bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
  *  A pointer to the screen structure.
  * @param origin
  *  The origin of the gaze.
- * @param dir
- *  The gaze direction.
+ * @param point
+ *  The gaze point.
  * @param intersection
  *  A location to store the intersection point. This is only valid if the
  *  function returns true.
