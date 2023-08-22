@@ -3,3 +3,5 @@ test/*/test
 doc/latex
 doc/man
 example/example
+example/fixations.csv
+example/saccades.csv
