@@ -60,6 +60,16 @@ The easiest approach is to use the functions `gac_sample_window_*` as these main
 Alternatively it is possible to manually maintain a sample window and work with each filter individually. This means filter structures have to be created and destroyed manually and filtering has to be applied manually to a custom sample window.
 Refer to the API for more information.
 
+### Detection Algorithm
+
+Fixations are detected with the I-DT algorithm (Salvucci & Goldberg 2000).
+Saccades are detected with the I-VT algorithm (Salvucci & Goldberg 2000).
+
+Note that the resulting fixations and saccades will **not** fit together perfectly (e.g. a saccade follows a fixation and vice versa) because
+1. both algorithms work with their own parameters which will most likely lead to gaps (data which is neither classified as part of a fixation nor saccade)
+2. gaze data may be a recording of a smooth pursuit
+3. gaps in the gaze data because of blinks or other data loss
+
 ### 3d vs 2d Data
 
 All calculations are performed on 3d data.
