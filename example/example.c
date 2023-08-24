@@ -4,6 +4,16 @@
 #include <string.h>
 #include <time.h>
 
+/**
+ * Callback to extract a value form the csv file.
+ *
+ * @param s
+ *  The value as it was extrachted from the file.
+ * @param len
+ *  The number of bytes extracted.
+ * @param data
+ *  The context passed to the call back function.
+ */
 void csv_cb( void* s, size_t len, void* data )
 {
     void*** vals = data;
@@ -12,9 +22,18 @@ void csv_cb( void* s, size_t len, void* data )
     (*vals)++;
 }
 
+/**
+ * Helper function to convert a boolean string to a boolean value
+ *
+ * @param a
+ *  The boolean string.
+ * @return
+ *  The boolean value. If string did not match a boolean false is returned.
+ */
 bool atob( const char* a )
 {
-    if( a == NULL || strcmp( a, "True" ) == 0 || strcmp( a, "true" ) == 0 || strcmp( a, "TRUE" ) == 0 )
+    if( a == NULL || strcmp( a, "True" ) == 0 || strcmp( a, "true" ) == 0
+            || strcmp( a, "TRUE" ) == 0 )
     {
         return true;
     }
@@ -22,6 +41,18 @@ bool atob( const char* a )
     return false;
 }
 
+/**
+ * Helper function to perfomr the analysis on the latest samples.
+ *
+ * @param count
+ *  The number of new samples to process
+ * @param h
+ *  A pointer to the gaze analysis handler
+ * @param fp_fixations
+ *  A pointer to a file handler for the fixation output.
+ * @param fp_saccades
+ *  A pointer to a file handler for the saccade output.
+ */
 void compute( int count, void* h, FILE* fp_fixations, FILE* fp_saccades )
 {
     int i;
@@ -81,6 +112,8 @@ int main(int argc, char* argv[])
     int rc, len, count, i;
     gac_filter_parameter_t params;
     char line[10000];
+    const char* fixation_header;
+    const char* saccade_header;
     struct csv_parser p;
     FILE* fp;
     FILE* fp_fixations;
@@ -91,6 +124,7 @@ int main(int argc, char* argv[])
     void* vals[100];
     void* vals_ptr;
 
+    // general initialisation
     for( i = 0; i < 100; i++ )
     {
         vals[i] = NULL;
@@ -109,6 +143,7 @@ int main(int argc, char* argv[])
     fp_fixations_screen = fopen( "./fixations_screen.csv", "w" );
     fp_saccades_screen = fopen( "./saccades_screen.csv", "w" );
 
+    // set filter parameters
     params.fixation.dispersion_threshold = 0.5;
     params.fixation.duration_threshold = 100;
     params.saccade.velocity_threshold = 20;
@@ -116,24 +151,39 @@ int main(int argc, char* argv[])
     params.noise.type = GAC_FILTER_NOISE_TYPE_AVERAGE;
     params.gap.max_gap_length = 100;
     params.gap.sample_period = 1000.0/60.0;
+
+    // initialize gaze analysis handler which reads 2d points from sample file
     gac_init( &h, &params );
+
+    // initialize gaze analysis handler which computes 2d points based on
+    // screen coordinates
     gac_init( &h_screen, &params );
     gac_set_screen( &h_screen,
       -298.64031982421875, 331.7396545410156, 113.90633392333984,
       298.87738037109375, 331.7396545410156, 113.90633392333984,
       -298.64031982421875, 15.905486106872559, -1.0478993654251099 );
-    fprintf( fp_fixations, "timestamp,trial_onset,label_onset,trial_id,"
-            "label,sx,sy,px,py,pz,duration\n" );
-    fprintf( fp_saccades, "timestamp,trial_onset,label_onset,trial_id,"
-            "label,s1x,s1y,p1x,p1y,p1z,s2x,s2y,p2x,p2y,p2z,duration\n" );
 
+    // init headers for csv files
+    fixation_header = "timestamp,trial_onset,label_onset,trial_id,"
+            "label,sx,sy,px,py,pz,duration";
+    saccade_header = "timestamp,trial_onset,label_onset,trial_id,"
+            "label,s1x,s1y,p1x,p1y,p1z,s2x,s2y,p2x,p2y,p2z,duration";
+    fprintf( fp_fixations, "%s\n", fixation_header );
+    fprintf( fp_fixations_screen, "%s\n", fixation_header );
+    fprintf( fp_saccades, "%s\n", saccade_header );
+    fprintf( fp_saccades_screen, "%s\n", saccade_header );
+
+    // read sample csv file
     while( fgets( line, 10000, fp ) )
     {
+        // skip the header of the sample file
         if( first )
         {
             first = false;
             continue;
         }
+
+        // parse the csv line
         csv_init( &p, CSV_APPEND_NULL );
         csv_set_delim( &p, ',' );
         len = strlen( line );
@@ -147,22 +197,27 @@ int main(int argc, char* argv[])
         csv_fini( &p, csv_cb, NULL, &vals_ptr );
         csv_free( &p );
 
+        // skip to next line if any value is not valid
         if( !atob( vals[11] ) || !atob( vals[12] ) || !atob( vals[13] ) )
         {
             goto next_loop;
         }
 
+        // perform analysis by propagating 2d data from the sample file
         count = gac_sample_window_update_screen( &h,
                 atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[0] ), atof( vals[1] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
         compute( count, &h, fp_fixations, fp_saccades );
+
+        // perform analysis by computing 2d data from screen coordinates
         count = gac_sample_window_update( &h_screen,
                 atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
         compute( count, &h_screen, fp_fixations_screen, fp_saccades_screen );
+
 next_loop:
         for( i = 0; i < 100; i++ )
         {
@@ -170,6 +225,7 @@ next_loop:
         }
     }
 
+    // cleanup
     gac_destroy( &h );
     gac_destroy( &h_screen );
     fclose( fp );

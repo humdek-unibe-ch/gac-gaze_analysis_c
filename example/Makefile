@@ -37,7 +37,7 @@ $(APPNAME): $(SOURCES) $(LIBDIR)/libgac.so
 	$(CC) $(CFLAGS) $(SOURCES) $(INCLUDES_DIR) $(LINK_DIR) $(LINK_FILE) -o $@
 
 $(LIBDIR)/libgac.so:
-	$(MAKE) -C ../..
+	$(MAKE) -C ..
 
 .PHONY: clean
 
