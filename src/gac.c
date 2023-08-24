@@ -146,6 +146,7 @@ bool gac_set_screen( gac_t* h,
         return false;
     }
 
+    gac_screen_destroy( h->screen );
     h->screen = screen;
 
     return true;
@@ -686,18 +687,23 @@ gac_plane_t* gac_plane_create( vec3* p1, vec3* p2, vec3* p3 )
         return NULL;
     }
 
+    plane->is_heap = true;
+
     return plane;
 }
 
 /******************************************************************************/
 void gac_plane_destroy( gac_plane_t* plane )
 {
-    if( plane == NULL || plane->is_heap)
+    if( plane == NULL )
     {
         return;
     }
 
-    free( plane );
+    if( plane->is_heap )
+    {
+        free( plane );
+    }
 }
 
 /******************************************************************************/
@@ -753,8 +759,10 @@ bool gac_plane_init( gac_plane_t* plane, vec3* p1, vec3* p2, vec3* p3 )
     s[2][3] = w[2];
 
     glm_mat4_inv( s, s_inv );
-    glm_mat4_mul( d, s_inv, plane->m );
+    glm_mat4_mul( s_inv, d, plane->m );
     glm_mat4_transpose( plane->m );
+
+    plane->is_heap = false;
 
     return true;
 }
@@ -1314,6 +1322,7 @@ uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origi
     h->saccade.new_samples = count;
     if( h->samples.tail != NULL )
     {
+        gac_sample_destroy( h->last_sample );
         h->last_sample = gac_sample_copy( h->samples.tail->data );
     }
 
@@ -1547,18 +1556,23 @@ gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
         return NULL;
     }
 
+    screen->is_heap = true;
+
     return screen;
 }
 
 /******************************************************************************/
 void gac_screen_destroy( gac_screen_t* screen )
 {
-    if( screen == NULL || screen->is_heap)
+    if( screen == NULL )
     {
         return;
     }
 
-    free( screen );
+    if( screen->is_heap )
+    {
+        free( screen );
+    }
 }
 
 /******************************************************************************/
@@ -1575,6 +1589,8 @@ bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
 
     screen->width = glm_vec3_norm( screen->plane.e1 );
     screen->height = glm_vec3_norm( screen->plane.e2 );
+    screen->is_heap = false;
+    glm_vec2_zero( screen->origin );
 
     gac_screen_point( screen, top_left, &screen->origin );
 
