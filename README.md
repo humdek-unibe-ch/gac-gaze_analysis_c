@@ -70,6 +70,16 @@ Note that the resulting fixations and saccades will **not** fit together perfect
 2. gaze data may be a recording of a smooth pursuit
 3. gaps in the gaze data because of blinks or other data loss
 
+For more details on the filter parameter options refer to the API documentation.
+
+### Filters
+
+Optionally the gaze data is processed by
+1. a moving average filter which computes the average of all samples in the filters own sliding window. Sample annotations (e.g. the label, trial ID, and timestamps) are copied from the data sample in the middle of the sliding window.
+2. a gap fill-in filter where data samples are filled into gaps using linear interpolation.
+
+For more details on the filter parameter options refer to the API documentation.
+
 ### 3d vs 2d Data
 
 All calculations are performed on 3d data.
