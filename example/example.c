@@ -22,22 +22,72 @@ bool atob( const char* a )
     return false;
 }
 
+void compute( int count, void* h, FILE* fp_fixations, FILE* fp_saccades )
+{
+    int i;
+    bool res;
+    gac_fixation_t fixation;
+    gac_saccade_t saccade;
+
+    for( i = 0; i < count; i++ )
+    {
+        res = gac_sample_window_fixation_filter( h, &fixation );
+        if( res == true )
+        {
+            fprintf( fp_fixations, "%f, %f, %f, %d, %s, %f, %f, %f, %f, %f, %f\n",
+                    fixation.first_sample.timestamp,
+                    fixation.first_sample.trial_onset,
+                    fixation.first_sample.label_onset,
+                    fixation.first_sample.trial_id,
+                    fixation.first_sample.label,
+                    fixation.screen_point[0],
+                    fixation.screen_point[1],
+                    fixation.point[0],
+                    fixation.point[1],
+                    fixation.point[2],
+                    fixation.duration );
+            gac_fixation_destroy( &fixation );
+        }
+        res = gac_sample_window_saccade_filter( h, &saccade );
+        if( res == true )
+        {
+            fprintf( fp_saccades, "%f, %f, %f, %d, %s, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
+                    saccade.first_sample.timestamp,
+                    saccade.first_sample.trial_onset,
+                    saccade.first_sample.label_onset,
+                    saccade.first_sample.trial_id,
+                    saccade.first_sample.label,
+                    saccade.first_sample.screen_point[0],
+                    saccade.first_sample.screen_point[1],
+                    saccade.first_sample.point[0],
+                    saccade.first_sample.point[1],
+                    saccade.first_sample.point[2],
+                    saccade.last_sample.screen_point[0],
+                    saccade.last_sample.screen_point[1],
+                    saccade.last_sample.point[0],
+                    saccade.last_sample.point[1],
+                    saccade.last_sample.point[2],
+                    saccade.last_sample.timestamp - saccade.first_sample.timestamp );
+            gac_saccade_destroy( &saccade );
+        }
+    }
+    gac_sample_window_cleanup( h );
+}
+
 int main(int argc, char* argv[])
 {
-    gac_t h;
+    gac_t h, h_screen;
     bool first = true;
-    int rc, len, count, i, id = 0;
+    int rc, len, count, i;
     gac_filter_parameter_t params;
     char line[10000];
     struct csv_parser p;
     FILE* fp;
     FILE* fp_fixations;
     FILE* fp_saccades;
-    char id_str[16];
+    FILE* fp_fixations_screen;
+    FILE* fp_saccades_screen;
 
-    gac_fixation_t fixation;
-    gac_saccade_t saccade;
-    bool res;
     void* vals[100];
     void* vals_ptr;
 
@@ -52,10 +102,12 @@ int main(int argc, char* argv[])
     }
     else
     {
-        fp = fopen( "./sample_real.csv", "r" );
+        fp = fopen( "./sample.csv", "r" );
     }
     fp_fixations = fopen( "./fixations.csv", "w" );
     fp_saccades = fopen( "./saccades.csv", "w" );
+    fp_fixations_screen = fopen( "./fixations_screen.csv", "w" );
+    fp_saccades_screen = fopen( "./saccades_screen.csv", "w" );
 
     params.fixation.dispersion_threshold = 0.5;
     params.fixation.duration_threshold = 100;
@@ -65,6 +117,11 @@ int main(int argc, char* argv[])
     params.gap.max_gap_length = 100;
     params.gap.sample_period = 1000.0/60.0;
     gac_init( &h, &params );
+    gac_init( &h_screen, &params );
+    gac_set_screen( &h_screen,
+      -298.64031982421875, 331.7396545410156, 113.90633392333984,
+      298.87738037109375, 331.7396545410156, 113.90633392333984,
+      -298.64031982421875, 15.905486106872559, -1.0478993654251099 );
     fprintf( fp_fixations, "timestamp,trial_onset,label_onset,trial_id,"
             "label,sx,sy,px,py,pz,duration\n" );
     fprintf( fp_saccades, "timestamp,trial_onset,label_onset,trial_id,"
@@ -95,56 +152,17 @@ int main(int argc, char* argv[])
             goto next_loop;
         }
 
-        sprintf( id_str, "%d", id );
         count = gac_sample_window_update_screen( &h,
                 atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[0] ), atof( vals[1] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        for( i = 0; i < count; i++ )
-        {
-            res = gac_sample_window_fixation_filter( &h, &fixation );
-            if( res == true )
-            {
-                fprintf( fp_fixations, "%f, %f, %f, %d, %s, %f, %f, %f, %f, %f, %f\n",
-                        fixation.first_sample.timestamp,
-                        fixation.first_sample.trial_onset,
-                        fixation.first_sample.label_onset,
-                        fixation.first_sample.trial_id,
-                        fixation.first_sample.label,
-                        fixation.screen_point[0],
-                        fixation.screen_point[1],
-                        fixation.point[0],
-                        fixation.point[1],
-                        fixation.point[2],
-                        fixation.duration );
-                gac_fixation_destroy( &fixation );
-            }
-            res = gac_sample_window_saccade_filter( &h, &saccade );
-            if( res == true )
-            {
-                fprintf( fp_saccades, "%f, %f, %f, %d, %s, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
-                        saccade.first_sample.timestamp,
-                        saccade.first_sample.trial_onset,
-                        saccade.first_sample.label_onset,
-                        saccade.first_sample.trial_id,
-                        saccade.first_sample.label,
-                        saccade.first_sample.screen_point[0],
-                        saccade.first_sample.screen_point[1],
-                        saccade.first_sample.point[0],
-                        saccade.first_sample.point[1],
-                        saccade.first_sample.point[2],
-                        saccade.last_sample.screen_point[0],
-                        saccade.last_sample.screen_point[1],
-                        saccade.last_sample.point[0],
-                        saccade.last_sample.point[1],
-                        saccade.last_sample.point[2],
-                        saccade.last_sample.timestamp - saccade.first_sample.timestamp );
-                gac_saccade_destroy( &saccade );
-            }
-        }
-        gac_sample_window_cleanup( &h );
-        id++;
+        compute( count, &h, fp_fixations, fp_saccades );
+        count = gac_sample_window_update( &h_screen,
+                atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
+                atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
+                atof( vals[8] ), atoi( vals[9] ), vals[10] );
+        compute( count, &h_screen, fp_fixations_screen, fp_saccades_screen );
 next_loop:
         for( i = 0; i < 100; i++ )
         {
@@ -153,9 +171,12 @@ next_loop:
     }
 
     gac_destroy( &h );
+    gac_destroy( &h_screen );
     fclose( fp );
     fclose( fp_fixations );
     fclose( fp_saccades );
+    fclose( fp_fixations_screen );
+    fclose( fp_saccades_screen );
 
     return 0;
 }

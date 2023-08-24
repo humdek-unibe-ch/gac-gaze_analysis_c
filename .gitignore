@@ -5,3 +5,5 @@ doc/man
 example/example
 example/fixations.csv
 example/saccades.csv
+example/fixations_screen.csv
+example/saccades_screen.csv

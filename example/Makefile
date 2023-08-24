@@ -32,10 +32,6 @@ debug: all
 
 run: $(APPNAME)
 	$(LD_LIBRARY_PATH) ./$(APPNAME)
-run-long: $(APPNAME)
-	$(LD_LIBRARY_PATH) ./$(APPNAME) ./sample2.csv
-run-small: $(APPNAME)
-	$(LD_LIBRARY_PATH) ./$(APPNAME) ./sample.csv
 
 $(APPNAME): $(SOURCES) $(LIBDIR)/libgac.so
 	$(CC) $(CFLAGS) $(SOURCES) $(INCLUDES_DIR) $(LINK_DIR) $(LINK_FILE) -o $@
