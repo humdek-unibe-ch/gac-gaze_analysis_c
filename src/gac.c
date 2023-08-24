@@ -48,7 +48,6 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
 
     h->screen = NULL;
     h->is_heap = false;
-    h->is_normalized = true;
     h->last_sample = NULL;
     gac_get_filter_parameter_default( &h->parameter );
 
@@ -126,31 +125,27 @@ bool gac_get_filter_parameter_default( gac_filter_parameter_t* parameter )
 }
 
 /******************************************************************************/
-bool gac_set_screen( gac_t* h, bool is_normalized,
+bool gac_set_screen( gac_t* h,
         float top_left_x, float top_left_y, float top_left_z,
         float top_right_x, float top_right_y, float top_right_z,
-        float bottom_left_x, float bottom_left_y, float bottom_left_z,
-        float bottom_right_x, float bottom_right_y, float bottom_right_z )
+        float bottom_left_x, float bottom_left_y, float bottom_left_z )
 {
     gac_screen_t* screen;
     vec3 top_left = { top_left_x, top_left_y, top_left_z };
     vec3 top_right = { top_right_x, top_right_y, top_right_z };
     vec3 bottom_left = { bottom_left_x, bottom_left_y, bottom_left_z };
-    vec3 bottom_right = { bottom_right_x, bottom_right_y, bottom_right_z };
 
     if( h == NULL )
     {
         return false;
     }
 
-    screen = gac_screen_create( &top_left, &top_right, &bottom_left,
-            &bottom_right );
+    screen = gac_screen_create( &top_left, &top_right, &bottom_left );
     if( screen == NULL )
     {
         return false;
     }
 
-    h->is_normalized = is_normalized;
     h->screen = screen;
 
     return true;
@@ -676,6 +671,143 @@ float gac_fixation_normalised_dispersion_threshold( float angle )
 }
 
 /******************************************************************************/
+gac_plane_t* gac_plane_create( vec3* p1, vec3* p2, vec3* p3 )
+{
+    gac_plane_t* plane = malloc( sizeof( gac_screen_t ) );
+
+    if( plane == NULL )
+    {
+        return NULL;
+    }
+
+    if( !gac_plane_init( plane, p1, p2, p3 ) )
+    {
+        gac_plane_destroy( plane );
+        return NULL;
+    }
+
+    return plane;
+}
+
+/******************************************************************************/
+void gac_plane_destroy( gac_plane_t* plane )
+{
+    if( plane == NULL || plane->is_heap)
+    {
+        return;
+    }
+
+    free( plane );
+}
+
+/******************************************************************************/
+bool gac_plane_init( gac_plane_t* plane, vec3* p1, vec3* p2, vec3* p3 )
+{
+    mat4 d = {
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f, 1.0f}
+    };
+    mat4 s = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {1.0f, 1.0f, 1.0f, 1.0f}
+    };
+    mat4 s_inv;
+    vec3 e1, e2, norm;
+    vec3 u, v, w;
+
+    if( plane == NULL || p1 == NULL || p2 == NULL || p3 == NULL )
+    {
+        return false;
+    }
+
+    glm_vec3_copy( *p1, plane->p1 );
+    glm_vec3_copy( *p2, plane->p2 );
+    glm_vec3_copy( *p3, plane->p3 );
+
+    glm_vec3_sub( *p2, *p1, plane->e1 );
+    glm_vec3_sub( *p3, *p1, plane->e2 );
+    glm_vec3_cross( plane->e1, plane->e2, plane->norm );
+
+    glm_vec3_normalize_to( plane->e1, e1 );
+    glm_vec3_normalize_to( plane->e2, e2 );
+    glm_vec3_normalize_to( plane->norm, norm );
+    glm_vec3_add( *p1, e1, u );
+    glm_vec3_add( *p1, e2, v );
+    glm_vec3_add( *p1, norm, w );
+
+    s[0][0] = ( *p1 )[0];
+    s[1][0] = ( *p1 )[1];
+    s[2][0] = ( *p1 )[2];
+    s[0][1] = u[0];
+    s[1][1] = u[1];
+    s[2][1] = u[2];
+    s[0][2] = v[0];
+    s[1][2] = v[1];
+    s[2][2] = v[2];
+    s[0][3] = w[0];
+    s[1][3] = w[1];
+    s[2][3] = w[2];
+
+    glm_mat4_inv( s, s_inv );
+    glm_mat4_mul( d, s_inv, plane->m );
+    glm_mat4_transpose( plane->m );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_plane_intersection( gac_plane_t* plane, vec3* origin, vec3* dir,
+        vec3* intersection )
+{
+    float d;
+    float n;
+    vec3 dir_scale, dir_neg, dir_init;
+
+    if( plane == NULL || origin == NULL || dir == NULL
+            || intersection == NULL )
+    {
+        return false;
+    }
+
+    glm_vec3_scale( *dir, -1, dir_neg );
+    glm_vec3_sub( *origin, plane->p1, dir_init );
+
+    d = glm_vec3_dot( plane->norm, dir_init );
+    n = glm_vec3_dot( plane->norm, dir_neg );
+
+    if( n == 0 )
+    {
+        return false;
+    }
+
+    glm_vec3_scale( *dir, d / n, dir_scale );
+    glm_vec3_add( *origin, dir_scale, *intersection );
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_plane_point( gac_plane_t* plane, vec3* point3d, vec2* point2d )
+{
+    vec3 p;
+
+    if( plane == NULL || point3d == NULL || point2d == NULL )
+    {
+        return false;
+    }
+
+    glm_mat4_mulv3( plane->m, *point3d, 1, p );
+    ( *point2d )[0] = p[0];
+    ( *point2d )[1] = p[1];
+
+    return true;
+}
+
+/******************************************************************************/
 bool gac_queue_clear( gac_queue_t* queue )
 {
     if( queue == NULL )
@@ -1136,14 +1268,7 @@ uint32_t gac_sample_window_update( gac_t* h, float ox, float oy, float oz,
 
     if( h->screen != NULL )
     {
-        if( h->is_normalized )
-        {
-            gac_screen_point_normalized( h->screen, &point, &screen_point );
-        }
-        else
-        {
-            gac_screen_point( h->screen, &point, &screen_point );
-        }
+        gac_screen_point( h->screen, &point, &screen_point );
     }
     else
     {
@@ -1407,7 +1532,7 @@ success:
 
 /******************************************************************************/
 gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
-        vec3* bottom_left, vec3* bottom_right )
+        vec3* bottom_left )
 {
     gac_screen_t* screen = malloc( sizeof( gac_screen_t ) );
 
@@ -1416,8 +1541,7 @@ gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
         return NULL;
     }
 
-    if( !gac_screen_init( screen, top_left, top_right, bottom_left,
-                bottom_right ) )
+    if( !gac_screen_init( screen, top_left, top_right, bottom_left ) )
     {
         gac_screen_destroy( screen );
         return NULL;
@@ -1439,125 +1563,31 @@ void gac_screen_destroy( gac_screen_t* screen )
 
 /******************************************************************************/
 bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
-        vec3* bottom_left, vec3* bottom_right )
+        vec3* bottom_left )
 {
-    mat4 d = {
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f, 1.0f}
-    };
-    mat4 s = {
-        {0.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 0.0f},
-        {1.0f, 1.0f, 1.0f, 1.0f}
-    };
-    mat4 s_inv;
-    vec3 e1, e2, norm;
-    vec3 u, v, w;
-
     if( screen == NULL || top_left == NULL || top_right == NULL
-            || bottom_left == NULL || bottom_right == NULL )
+            || bottom_left == NULL )
     {
         return false;
     }
 
-    glm_vec3_copy( *top_left, screen->top_left );
-    glm_vec3_copy( *top_right, screen->top_right );
-    glm_vec3_copy( *bottom_left, screen->bottom_left );
-    glm_vec3_copy( *bottom_right, screen->bottom_right );
+    gac_plane_init( &screen->plane, top_left, top_right, bottom_left );
 
-    glm_vec3_sub( *top_right, *top_left, e1 );
-    glm_vec3_sub( *bottom_left, *top_left, e2 );
-    glm_vec3_cross( e1, e2, screen->norm );
+    screen->width = glm_vec3_norm( screen->plane.e1 );
+    screen->height = glm_vec3_norm( screen->plane.e2 );
 
-    screen->width = glm_vec3_norm( e1 );
-    screen->height = glm_vec3_norm( e2 );
-
-    glm_vec3_normalize( e1 );
-    glm_vec3_normalize( e2 );
-    glm_vec3_normalize_to( screen->norm, norm );
-    glm_vec3_add( *top_left, e1, u );
-    glm_vec3_add( *top_left, e2, v );
-    glm_vec3_add( *top_left, norm, w );
-
-    s[0][0] = ( *top_left )[0];
-    s[1][0] = ( *top_left )[1];
-    s[2][0] = ( *top_left )[2];
-    s[0][1] = u[0];
-    s[1][1] = u[1];
-    s[2][1] = u[2];
-    s[0][2] = v[0];
-    s[1][2] = v[1];
-    s[2][2] = v[2];
-    s[0][3] = w[0];
-    s[1][3] = w[1];
-    s[2][3] = w[2];
-
-    glm_mat4_inv( s, s_inv );
-    glm_mat4_mul( d, s_inv, screen->m );
-    glm_mat4_transpose( screen->m );
     gac_screen_point( screen, top_left, &screen->origin );
 
     return true;
 }
 
 /******************************************************************************/
-bool gac_screen_intersection( gac_screen_t* screen, vec3* origin, vec3* dir,
-        vec3* intersection )
-{
-    float d;
-    float n;
-    vec3 dir_scale, dir_neg, dir_init;
-
-    if( screen == NULL || origin == NULL || dir == NULL
-            || intersection == NULL )
-    {
-        return false;
-    }
-
-    glm_vec3_scale( *dir, -1, dir_neg );
-    glm_vec3_sub( *origin, screen->top_left, dir_init );
-
-    d = glm_vec3_dot( screen->norm, dir_init );
-    n = glm_vec3_dot( screen->norm, dir_neg );
-
-    if( n == 0 )
-    {
-        return false;
-    }
-
-    glm_vec3_scale( *dir, d / n, dir_scale );
-    glm_vec3_add( *origin, dir_scale, *intersection );
-
-    return true;
-}
-
-/******************************************************************************/
-bool gac_screen_point( gac_screen_t* screen, vec3* point3d, vec2* point2d )
-{
-    vec3 p;
-
-    if( screen == NULL || point3d == NULL || point2d == NULL )
-    {
-        return false;
-    }
-
-    glm_mat4_mulv3( screen->m, *point3d, 1, p );
-    ( *point2d )[0] = p[0];
-    ( *point2d )[1] = p[1];
-
-    return true;
-}
-
-/******************************************************************************/
-bool gac_screen_point_normalized( gac_screen_t* screen, vec3* point3d,
+bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
         vec2* point2d )
 {
     vec2 p_offset, p;
 
-    if( !gac_screen_point( screen, point3d, &p_offset ) )
+    if( !gac_plane_point( &screen->plane, point3d, &p_offset ) )
     {
         return false;
     }
