@@ -124,6 +124,8 @@ int main(int argc, char* argv[])
     void* vals[100];
     void* vals_ptr;
 
+    printf( "using libgac version %s\n", gac_version() );
+
     // general initialisation
     for( i = 0; i < 100; i++ )
     {

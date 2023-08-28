@@ -55,7 +55,7 @@ typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
  */
 struct gac_sample_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The ID of a ongoing trial. */
     uint32_t trial_id;
@@ -80,7 +80,7 @@ struct gac_sample_s
  */
 struct gac_fixation_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The 2d fixation gaze point on the screen. */
     vec2 screen_point;
@@ -97,7 +97,7 @@ struct gac_fixation_s
  */
 struct gac_saccade_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The first sample of the saccade. */
     gac_sample_t first_sample;
@@ -123,7 +123,7 @@ struct gac_queue_item_s
  */
 struct gac_queue_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** A pointer to the head of the queue to read from. */
     gac_queue_item_t* tail;
@@ -142,7 +142,7 @@ struct gac_queue_s
  */
 struct gac_filter_fixation_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The pre-computed dispersion threshold at unit distance */
     double normalized_dispersion_threshold;
@@ -167,7 +167,7 @@ struct gac_filter_fixation_s
  */
 struct gac_filter_saccade_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The velocity threshold */
     float velocity_threshold;
@@ -184,7 +184,7 @@ struct gac_filter_saccade_s
  */
 struct gac_filter_noise_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** A flag indicating whether the noise filter is active or not */
     bool is_enabled;
@@ -201,7 +201,7 @@ struct gac_filter_noise_s
  */
 struct gac_filter_gap_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** A flag indicating whether the filter is active or not */
     bool is_enabled;
@@ -216,7 +216,7 @@ struct gac_filter_gap_s
  */
 struct gac_filter_parameter_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The gap filter parameter */
     struct {
@@ -258,7 +258,7 @@ struct gac_filter_parameter_s
  */
 struct gac_plane_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** A point on the plane 3d space. */
     vec3 p1;
@@ -281,7 +281,7 @@ struct gac_plane_s
  */
 struct gac_screen_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The width of the screen. */
     float width;
@@ -298,7 +298,7 @@ struct gac_screen_s
  */
 struct gac_s
 {
-    /** Pointer to itself which for memory management. */ 
+    /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
     /** The sample queue */
     gac_queue_t samples;
@@ -1300,5 +1300,13 @@ bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
  */
 bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
         vec2* point2d );
+
+/**
+ * Returns the version of the library.
+ *
+ * @return
+ *  A version number string of the form `<major>.<minor>.<revision>`.
+ */
+const char* gac_version();
 
 #endif

@@ -3,6 +3,10 @@
 #include <math.h>
 #include <string.h>
 
+#ifndef LIB_GAC_VERSION
+#define LIB_GAC_VERSION "undefined"
+#endif
+
 /******************************************************************************/
 gac_t* gac_create( gac_filter_parameter_t* parameter )
 {
@@ -1616,4 +1620,10 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
     ( *point2d )[1] = p[1] / screen->height;
 
     return true;
+}
+
+/******************************************************************************/
+const char* gac_version()
+{
+    return LIB_GAC_VERSION;
 }

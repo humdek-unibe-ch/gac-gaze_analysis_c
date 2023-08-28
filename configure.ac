@@ -1,4 +1,4 @@
-AC_INIT([gac], [0.1.0], [simon.maurer@unibe.ch])
+AC_INIT([gac], [1.0.0], [simon.maurer@unibe.ch])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 AC_CONFIG_MACRO_DIRS([m4])
