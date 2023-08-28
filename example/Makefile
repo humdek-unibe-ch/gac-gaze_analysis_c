@@ -10,7 +10,7 @@ endif
 INCLUDES_DIR = -I../cglm/include \
 			   -I../include
 
-LIBDIR = ../build/lib
+LIBDIR = ../.libs
 LD_LIBRARY_PATH = LD_LIBRARY_PATH=$(LIBDIR)
 
 LINK_DIR = -L$(LIBDIR)
