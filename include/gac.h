@@ -55,8 +55,8 @@ typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
  */
 struct gac_sample_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The ID of a ongoing trial. */
     uint32_t trial_id;
     /** The 2d gaze point on the screen. */
@@ -80,8 +80,8 @@ struct gac_sample_s
  */
 struct gac_fixation_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The 2d fixation gaze point on the screen. */
     vec2 screen_point;
     /** The fixation gaze point. */
@@ -97,8 +97,8 @@ struct gac_fixation_s
  */
 struct gac_saccade_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The first sample of the saccade. */
     gac_sample_t first_sample;
     /** The last sample of the saccade. */
@@ -123,8 +123,8 @@ struct gac_queue_item_s
  */
 struct gac_queue_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** A pointer to the head of the queue to read from. */
     gac_queue_item_t* tail;
     /** A pointer to the tail to write to */
@@ -142,8 +142,8 @@ struct gac_queue_s
  */
 struct gac_filter_fixation_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The pre-computed dispersion threshold at unit distance */
     double normalized_dispersion_threshold;
     /** The duration threashold */
@@ -167,8 +167,8 @@ struct gac_filter_fixation_s
  */
 struct gac_filter_saccade_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The velocity threshold */
     float velocity_threshold;
     /** A flag indicating whether a saccade is ongoing */
@@ -184,8 +184,8 @@ struct gac_filter_saccade_s
  */
 struct gac_filter_noise_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** A flag indicating whether the noise filter is active or not */
     bool is_enabled;
     /** The noise filter window */
@@ -201,8 +201,8 @@ struct gac_filter_noise_s
  */
 struct gac_filter_gap_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** A flag indicating whether the filter is active or not */
     bool is_enabled;
     /** The maximal allowed gap length to be filled-in */
@@ -216,8 +216,8 @@ struct gac_filter_gap_s
  */
 struct gac_filter_parameter_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The gap filter parameter */
     struct {
         /**
@@ -258,8 +258,8 @@ struct gac_filter_parameter_s
  */
 struct gac_plane_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** A point on the plane 3d space. */
     vec3 p1;
     /** A point on the plane 3d space. */
@@ -281,8 +281,8 @@ struct gac_plane_s
  */
 struct gac_screen_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The width of the screen. */
     float width;
     /** The height of the screen. */
@@ -298,8 +298,8 @@ struct gac_screen_s
  */
 struct gac_s
 {
-    /** Flag to indicate whether the struct was allocated on the heap. */
-    bool is_heap;
+    /** Pointer to itself which for memory management. */ 
+    void* _me;
     /** The sample queue */
     gac_queue_t samples;
     /** The fixation filter structure */

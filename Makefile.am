@@ -12,4 +12,4 @@ gacdir=$(includedir)
 gac_HEADERS = include/gac.h
 
 libgac_la_SOURCES = src/gac.c
-libgac_la_LDFLAGS = -version-number $(VMAJ):$(VMIN):$(VREV)
+libgac_la_LDFLAGS = -no-undefined -version-number $(VMAJ):$(VMIN):$(VREV)

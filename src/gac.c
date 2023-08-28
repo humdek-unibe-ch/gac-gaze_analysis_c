@@ -11,7 +11,7 @@ gac_t* gac_create( gac_filter_parameter_t* parameter )
     {
         return NULL;
     }
-    h->is_heap = true;
+    h->_me = h;
 
     return h;
 }
@@ -32,9 +32,9 @@ void gac_destroy( gac_t* h )
     gac_screen_destroy( h->screen );
     gac_sample_destroy( h->last_sample );
 
-    if( h->is_heap )
+    if( h->_me != NULL )
     {
-        free( h );
+        free( h->_me );
     }
 }
 
@@ -47,7 +47,7 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     }
 
     h->screen = NULL;
-    h->is_heap = false;
+    h->_me = NULL;
     h->last_sample = NULL;
     gac_get_filter_parameter_default( &h->parameter );
 
@@ -169,7 +169,7 @@ gac_filter_fixation_t* gac_filter_fixation_create(
     {
         return NULL;
     }
-    filter->is_heap = true;
+    filter->_me = filter;
 
     return filter;
 }
@@ -183,9 +183,9 @@ void gac_filter_fixation_destroy( gac_filter_fixation_t* filter )
     }
 
     gac_queue_destroy( &filter->window );
-    if( filter->is_heap )
+    if( filter->_me != NULL )
     {
-        free( filter );
+        free( filter->_me );
     }
 }
 
@@ -199,7 +199,7 @@ bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
         return false;
     }
 
-    filter->is_heap = false;
+    filter->_me = NULL;
     filter->duration = 0;
     filter->new_samples = 0;
     glm_vec2_zero( filter->screen_point );
@@ -226,6 +226,9 @@ bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
     gac_sample_t* first_sample;
     gac_queue_t* window;
 
+    glm_vec2_zero( screen_point );
+    glm_vec3_zero( point );
+    glm_vec3_zero( origin );
     if( fixation == NULL || sample == NULL || filter == NULL )
     {
         return false;
@@ -355,7 +358,7 @@ gac_filter_gap_t* gac_filter_gap_create( double max_gap_length,
     {
         return NULL;
     }
-    filter->is_heap = true;
+    filter->_me = filter;
 
     return filter;
 }
@@ -368,9 +371,9 @@ void gac_filter_gap_destroy( gac_filter_gap_t* filter )
         return;
     }
 
-    if( filter->is_heap )
+    if( filter->_me != NULL )
     {
-        free( filter );
+        free( filter->_me );
     }
 }
 
@@ -383,7 +386,7 @@ bool gac_filter_gap_init( gac_filter_gap_t* filter, double max_gap_length,
         return false;
     }
 
-    filter->is_heap = false;
+    filter->_me = NULL;
     filter->is_enabled = max_gap_length == 0 ? false : true;
     filter->max_gap_length = max_gap_length;
     filter->sample_period = sample_period;
@@ -462,7 +465,7 @@ gac_filter_noise_t* gac_filter_noise_create( gac_filter_noise_type_t type,
     {
         return NULL;
     }
-    filter->is_heap = true;
+    filter->_me = filter;
 
     return filter;
 }
@@ -476,9 +479,9 @@ void gac_filter_noise_destroy( gac_filter_noise_t* filter )
     }
 
     gac_queue_destroy( &filter->window );
-    if( filter->is_heap )
+    if( filter->_me != NULL )
     {
-        free( filter );
+        free( filter->_me );
     }
 }
 
@@ -491,7 +494,7 @@ bool gac_filter_noise_init( gac_filter_noise_t* filter,
         return false;
     }
 
-    filter->is_heap = false;
+    filter->_me = NULL;
     filter->is_enabled = mid_idx == 0 ? false : true;
     filter->type = type;
     filter->mid = mid_idx;
@@ -516,7 +519,7 @@ gac_filter_saccade_t* gac_filter_saccade_create( float velocity_threshold )
     {
         return NULL;
     }
-    filter->is_heap = true;
+    filter->_me = filter;
 
     return filter;
 }
@@ -530,9 +533,9 @@ void gac_filter_saccade_destroy( gac_filter_saccade_t* filter )
     }
 
     gac_queue_destroy( &filter->window );
-    if( filter->is_heap )
+    if( filter->_me != NULL )
     {
-        free( filter );
+        free( filter->_me );
     }
 }
 
@@ -545,7 +548,7 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
         return false;
     }
 
-    filter->is_heap = false;
+    filter->_me = NULL;
     filter->is_collecting = false;
     filter->velocity_threshold = velocity_threshold;
     filter->new_samples = 0;
@@ -626,7 +629,7 @@ gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
     {
         return NULL;
     }
-    fixation->is_heap = true;
+    fixation->_me = fixation;
 
     return fixation;
 }
@@ -641,9 +644,9 @@ void gac_fixation_destroy( gac_fixation_t* fixation )
 
     gac_sample_destroy( &fixation->first_sample );
 
-    if( fixation->is_heap )
+    if( fixation->_me != NULL )
     {
-        free( fixation );
+        free( fixation->_me );
     }
 }
 
@@ -656,7 +659,7 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
         return false;
     }
 
-    fixation->is_heap = false;
+    fixation->_me = NULL;
     fixation->duration = duration;
     glm_vec2_copy( *screen_point, fixation->screen_point );
     glm_vec3_copy( *point, fixation->point );
@@ -687,7 +690,7 @@ gac_plane_t* gac_plane_create( vec3* p1, vec3* p2, vec3* p3 )
         return NULL;
     }
 
-    plane->is_heap = true;
+    plane->_me = plane;
 
     return plane;
 }
@@ -700,9 +703,9 @@ void gac_plane_destroy( gac_plane_t* plane )
         return;
     }
 
-    if( plane->is_heap )
+    if( plane->_me != NULL )
     {
-        free( plane );
+        free( plane->_me );
     }
 }
 
@@ -762,7 +765,7 @@ bool gac_plane_init( gac_plane_t* plane, vec3* p1, vec3* p2, vec3* p3 )
     glm_mat4_mul( s_inv, d, plane->m );
     glm_mat4_transpose( plane->m );
 
-    plane->is_heap = false;
+    plane->_me = NULL;
 
     return true;
 }
@@ -851,7 +854,7 @@ gac_queue_t* gac_queue_create( uint32_t length )
     {
         return NULL;
     }
-    queue->is_heap = true;
+    queue->_me = queue;
 
     return queue;
 }
@@ -882,9 +885,9 @@ void gac_queue_destroy( gac_queue_t* queue )
         }
     }
 
-    if( queue->is_heap )
+    if( queue->_me != NULL )
     {
-        free( queue );
+        free( queue->_me );
     }
 }
 
@@ -945,7 +948,7 @@ bool gac_queue_init( gac_queue_t* queue, uint32_t length )
         return false;
     }
 
-    queue->is_heap = false;
+    queue->_me = NULL;
     queue->count = 0;
     queue->length = 0;
     queue->head = NULL;
@@ -1030,7 +1033,7 @@ bool gac_queue_push( gac_queue_t* queue, void* data )
 /******************************************************************************/
 bool gac_queue_remove( gac_queue_t* queue )
 {
-    void* data;
+    void* data = NULL;
     gac_queue_pop( queue, &data );
 
     if( data != NULL && queue->rm != NULL )
@@ -1058,12 +1061,12 @@ bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ))
 gac_saccade_t* gac_saccade_create( gac_sample_t* first_sample,
         gac_sample_t* last_sample )
 {
-    gac_saccade_t* saccade = malloc( sizeof( gac_fixation_t ) );
+    gac_saccade_t* saccade = malloc( sizeof( gac_saccade_t ) );
     if( !gac_saccade_init( saccade, first_sample, last_sample ) )
     {
         return NULL;
     }
-    saccade->is_heap = true;
+    saccade->_me = saccade;
 
     return saccade;
 }
@@ -1079,9 +1082,9 @@ void gac_saccade_destroy( gac_saccade_t* saccade )
     gac_sample_destroy( &saccade->first_sample );
     gac_sample_destroy( &saccade->last_sample );
 
-    if( saccade->is_heap )
+    if( saccade->_me != NULL )
     {
-        free( saccade );
+        free( saccade->_me );
     }
 }
 
@@ -1094,7 +1097,7 @@ bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
         return false;
     }
 
-    saccade->is_heap = false;
+    saccade->_me = NULL;
     gac_sample_copy_to( &saccade->first_sample, first_sample );
     gac_sample_copy_to( &saccade->last_sample, last_sample );
 
@@ -1148,7 +1151,7 @@ gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
     {
         return NULL;
     }
-    sample->is_heap = true;
+    sample->_me = sample;
 
     return sample;
 }
@@ -1168,9 +1171,9 @@ void gac_sample_destroy( void* data )
         free( sample->label );
     }
 
-    if( sample->is_heap )
+    if( sample->_me != NULL )
     {
-        free( sample );
+        free( sample->_me );
     }
 }
 
@@ -1183,13 +1186,13 @@ bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
         return false;
     }
 
-    sample->is_heap = false;
+    sample->_me = NULL;
     sample->label = NULL;
     if( label != NULL )
     {
         sample->label = strdup( label );
     }
-    glm_vec3_copy( *screen_point, sample->screen_point );
+    glm_vec2_copy( *screen_point, sample->screen_point );
     glm_vec3_copy( *origin, sample->origin );
     glm_vec3_copy( *point, sample->point );
     sample->trial_id = trial_id;
@@ -1556,7 +1559,7 @@ gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
         return NULL;
     }
 
-    screen->is_heap = true;
+    screen->_me = screen;
 
     return screen;
 }
@@ -1569,9 +1572,9 @@ void gac_screen_destroy( gac_screen_t* screen )
         return;
     }
 
-    if( screen->is_heap )
+    if( screen->_me != NULL )
     {
-        free( screen );
+        free( screen->_me );
     }
 }
 
@@ -1589,7 +1592,7 @@ bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
 
     screen->width = glm_vec3_norm( screen->plane.e1 );
     screen->height = glm_vec3_norm( screen->plane.e2 );
-    screen->is_heap = false;
+    screen->_me = NULL;
     glm_vec2_zero( screen->origin );
 
     gac_screen_point( screen, top_left, &screen->origin );
