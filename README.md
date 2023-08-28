@@ -116,19 +116,22 @@ sudo apt install build-essential
 sudo apt install autoconf autogen libtool
 ```
 
-To build the library use the command
+To build the library use the commands
 
 ```sh
+autoreconf --install
+./configure
 make
 ```
 
-To run tests use
+To build and run tests use
 
 ```sh
-make test
+cd test
+make
 ```
 
-Build and run the example with the following commands:
+To build and run the example use
 
 ```sh
 cd example

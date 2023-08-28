@@ -1,4 +1,3 @@
-build
 test/*/test
 doc/latex
 doc/man
@@ -7,6 +6,13 @@ example/fixations.csv
 example/saccades.csv
 example/fixations_screen.csv
 example/saccades_screen.csv
+
+.libs/
+libgac.la
+src/.libs/
+src/gac.lo
+src/gac.o
+
 
 # http://www.gnu.org/software/automake
 
