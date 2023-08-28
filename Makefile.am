@@ -1,0 +1,15 @@
+include config.mk
+
+ACLOCAL_AMFLAGS = -I m4
+AM_CFLAGS = -Wall \
+            -O3 \
+			-I./include \
+			-I./cglm/include
+
+lib_LTLIBRARIES = libgac.la
+
+gacdir=$(includedir)
+gac_HEADERS = include/gac.h
+
+libgac_la_SOURCES = src/gac.c
+libgac_la_LDFLAGS = -version-number $(VMAJ):$(VMIN):$(VREV)
