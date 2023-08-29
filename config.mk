@@ -1,9 +1,6 @@
-###############################################################################
-# CUTOMIZE THIS FILE TO SUIT YOUR NEEDS FOR THE BUILD PROCESS                 #
-# This file is included into the following files (refer to them for more      #
-# information on the build process):                                          #
-#  - Makefile                                                                 #
-###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 # The version number of the library ($(VMAJ).$(VMIN).$(VREV))
 VMAJ = 0

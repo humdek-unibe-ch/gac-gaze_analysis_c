@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 AC_INIT([gac], [1.0.0], [simon.maurer@unibe.ch])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
