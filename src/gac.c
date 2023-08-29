@@ -7,8 +7,6 @@
  */
 
 #include "gac.h"
-#include <cglm/vec2.h>
-#include <cglm/mat4.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
