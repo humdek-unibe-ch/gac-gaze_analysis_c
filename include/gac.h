@@ -13,7 +13,7 @@
 #define GAC_H
 
 #include <stdint.h>
-#include <cglm/cglm.h>
+#include <cglm/vec3.h>
 #include <sys/time.h>
 
 /** ::gac_s */

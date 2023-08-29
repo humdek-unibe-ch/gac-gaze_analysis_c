@@ -19,6 +19,12 @@ To build the example use
 make
 ```
 
+Note that the example requires some dependecies:
+
+```sh
+sudo apt install libcsv-dev
+```
+
 To run the example run
 
 ```sh

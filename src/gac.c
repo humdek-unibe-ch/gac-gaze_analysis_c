@@ -7,6 +7,8 @@
  */
 
 #include "gac.h"
+#include <cglm/vec2.h>
+#include <cglm/mat4.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -1545,7 +1547,6 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
 
     if( count > 0 && i < count )
     {
-        printf("count(%d) > 0, i(%d) < count(%d), item: %p:\n", count, i, count, item );
         return false;
     }
 
