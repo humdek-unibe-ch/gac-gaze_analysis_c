@@ -5,9 +5,7 @@
 include config.mk
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CFLAGS = -Wall \
-            -O3 \
-			-I./include \
+AM_CFLAGS = -I./include \
 			-I./cglm/include \
 			-DLIB_GAC_VERSION=\"$(VMAJ).$(VMIN).$(VREV)\"
 
