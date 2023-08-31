@@ -13,10 +13,15 @@ lib_LTLIBRARIES = libgac.la
 
 gacdir=$(includedir)
 gac_HEADERS = include/gac.h \
+			  include/gac_plane.h \
 			  include/gac_queue.h \
-			  include/gac_sample.h
+			  include/gac_sample.h \
+			  include/gac_screen.h
 
 libgac_la_SOURCES = src/gac.c \
+					src/gac_plane.c \
 					src/gac_queue.c \
-					src/gac_sample.c
+					src/gac_sample.c \
+					src/gac_screen.c
+
 libgac_la_LDFLAGS = -no-undefined -version-number $(VMAJ):$(VMIN):$(VREV)

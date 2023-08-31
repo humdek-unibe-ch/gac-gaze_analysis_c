@@ -16,6 +16,7 @@
 
 #include "gac_queue.h"
 #include "gac_sample.h"
+#include "gac_screen.h"
 #include <stdint.h>
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
@@ -40,12 +41,8 @@ typedef struct gac_filter_parameter_s gac_filter_parameter_t;
 typedef struct gac_filter_saccade_s gac_filter_saccade_t;
 /** ::gac_fixation_s */
 typedef struct gac_fixation_s gac_fixation_t;
-/** ::gac_plane_s */
-typedef struct gac_plane_s gac_plane_t;
 /** ::gac_saccade_s */
 typedef struct gac_saccade_s gac_saccade_t;
-/** ::gac_screen_s */
-typedef struct gac_screen_s gac_screen_t;
 
 /**
  * The order of point triplets. This is used for checking
@@ -242,46 +239,6 @@ struct gac_filter_parameter_s
         /** The dispersion threshold in degrees. */
         float dispersion_threshold;
     } fixation;
-};
-
-/**
- * A genaral plane definition.
- */
-struct gac_plane_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** A point on the plane 3d space. */
-    vec3 p1;
-    /** A point on the plane 3d space. */
-    vec3 p2;
-    /** A point on the plane 3d space. */
-    vec3 p3;
-    /** The vector pointing from p1 to p2. */
-    vec3 e1;
-    /** The vector pointing from p1 to p3. */
-    vec3 e2;
-    /** The normal of the screen surface. */
-    vec3 norm;
-    /** Transformation matrix to transform a 3d gaze point to a 2d gaze point. */
-    mat4 m;
-};
-
-/**
- * Screen definition of the eye tracker.
- */
-struct gac_screen_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** The width of the screen. */
-    float width;
-    /** The height of the screen. */
-    float height;
-    /** The screen origin in 2d space. */
-    vec2 origin;
-    /** The underlying plane definition of the screen */
-    gac_plane_t plane;
 };
 
 /**
@@ -842,83 +799,6 @@ bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
  */
 float gac_fixation_normalised_dispersion_threshold( float angle );
 
-// PLANE ///////////////////////////////////////////////////////////////////////
-
-/**
- * Allocate a plane in 3d space. This need to be freed with
- * `gac_plane_destroy()`.
- *
- * @param p1
- *  The 3d coordinates of a point in 3d space.
- * @param p2
- *  The 3d coordinates of a point in 3d space.
- * @param p3
- *  The 3d coordinates of a point in 3d space.
- * @return
- *  A pointer to the allocated plane or NULL on failure.
- */
-gac_plane_t* gac_plane_create( vec3* p1, vec3* p2, vec3* p3 );
-
-/**
- * Destroy a plane structure.
- *
- * @param plane
- *  A pointer to the plane structure to destroy.
- */
-void gac_plane_destroy( gac_plane_t* plane );
-
-/**
- * Initialise a plane in 3d space.
- *
- * @param plane
- *  A pointer to the plane structure to initialise.
- * @param p1
- *  The 3d coordinates of a point in 3d space.
- * @param p2
- *  The 3d coordinates of a point in 3d space.
- * @param p3
- *  The 3d coordinates of a point in 3d space.
- * @return
- *  True on succes and false on failure.
- */
-bool gac_plane_init( gac_plane_t* plane, vec3* p1, vec3* p2, vec3* p3 );
-
-/**
- * Compute the 3d intersection point with a plane.
- *
- * @param plane
- *  A pointer to the plane structure.
- * @param origin
- *  The origin of the gaze.
- * @param dir
- *  The gaze direction.
- * @param intersection
- *  A location to store the intersection point. This is only valid if the
- *  function returns true.
- * @return
- *  True if an intersection was found, false otherwise.
- */
-bool gac_plane_intersection( gac_plane_t* plane, vec3* origin, vec3* dir,
-        vec3* intersection );
-
-/**
- * Transform a 3d gaze point into a 2d point on a plane. This only works for
- * 3d points which coincide with the plane. To compute an intersection
- * use the function gac_plane_intersection().
- *
- * @param plane
- *  A pointer to the plane structure.
- * @param point3d
- *  The 3d point to transform.
- * @param point2d
- *  A location where the 2d point will be stored. This is only valid if the
- *  function returns true.
- * @return
- *  True on success, false otherwise.
- */
-bool gac_plane_point( gac_plane_t* plane, vec3* point3d,
-        vec2* point2d );
-
 // SACCADE /////////////////////////////////////////////////////////////////////
 
 /**
@@ -1150,74 +1030,6 @@ bool gac_samples_average_screen_point( gac_queue_t* samples, vec2* avg,
  */
 bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
         uint32_t count );
-
-// SCREEN //////////////////////////////////////////////////////////////////////
-
-/**
- * Allocate the screen structure. This needs to be freed with
- * `gac_screen_destroy()`. The screen is defined through the top left, the top
- * right and the bottom left point of the screen in 3d space. The width, the
- * height, and the bottom right point of the screen are computed based on these
- * three points.  Make sure to provide points that describe a rectangle for
- * this to make sense.
- *
- * @param top_left
- *  The 3d coordinates of the top left screen point.
- * @param top_right
- *  The 3d coordinates of the top right screen point.
- * @param bottom_left
- *  The 3d coordinates of the bottom left screen point.
- * @return
- *  A pointer to the allocated screen structure or NULL on failure.
- */
-gac_screen_t* gac_screen_create( vec3* top_left, vec3* top_right,
-        vec3* bottom_left );
-
-/**
- * Destroy a screen structure.
- *
- * @param screen
- *  A pointer to the screen structure to destroy
- */
-void gac_screen_destroy( gac_screen_t* screen );
-
-/**
- * Initialise a screen structure through the top left, the top right and the
- * bottom left point of the screen in 3d space. The width, the height, and the
- * bottom right point of the screen are computed based on these three points.
- * Make sure to provide points that describe a rectangle for this to make sense.
- *
- * @param screen
- *  A pointer to the screen structure to initialise.
- * @param top_left
- *  The 3d coordinates of the top left screen point.
- * @param top_right
- *  The 3d coordinates of the top right screen point.
- * @param bottom_left
- *  The 3d coordinates of the bottom left screen point.
- * @return
- *  True on succes and false on failure.
- */
-bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
-        vec3* bottom_left );
-
-/**
- * Transform a 3d gaze point into a normalized 2d point on the screen.
- * (0, 0) represents the top left corner of the screen and (1, 1) represents
- * the bottom right corner.
- *
- * @param screen
- *  A pointer to the screen structure.
- * @param point3d
- *  The 3d point to transform.
- * @param point2d
- *  A location where the 2d point will be stored. This is only valid if the
- *  function returns true.
- * @return
- *  True on success, false otherwise.
- */
-bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
-        vec2* point2d );
 
 /**
  * Returns the version of the library.
