@@ -15,6 +15,7 @@
 #define GAC_H
 
 #include "gac_queue.h"
+#include "gac_sample.h"
 #include <stdint.h>
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
@@ -27,8 +28,6 @@
 typedef struct gac_s gac_t;
 /** ::gac_aoi_s */
 typedef struct gac_aoi_s gac_aoi_t;
-/** ::gac_sample_s */
-typedef struct gac_sample_s gac_sample_t;
 /** ::gac_filter_gap_s */
 typedef struct gac_filter_gap_s gac_filter_gap_t;
 /** ::gac_filter_fixation_s */
@@ -97,31 +96,6 @@ struct gac_aoi_s
     float avg_edge_len;
     /** The number of points defining the AOI. */
     uint32_t count;
-};
-
-/**
- * The gaze data sample.
- */
-struct gac_sample_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** The ID of a ongoing trial. */
-    uint32_t trial_id;
-    /** The 2d gaze point on the screen. */
-    vec2 screen_point;
-    /** The gaze point. */
-    vec3 point;
-    /** The gaze origin. */
-    vec3 origin;
-    /** The sample timestamp. */
-    double timestamp;
-    /** The time in milliseconds since the last change of trial ID. */
-    double trial_onset;
-    /** The time in milliseconds since the last change of label. */
-    double label_onset;
-    /** Arbitrary label to annotate the sample. */
-    char* label;
 };
 
 /**
@@ -982,84 +956,6 @@ void gac_saccade_destroy( gac_saccade_t* saccade );
  */
 bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
         gac_sample_t* last_sample );
-
-// SAMPLE //////////////////////////////////////////////////////////////////////
-
-/**
- * Allocate a new sample structure on the heap. This needs to be freed.
- *
- * @param screen_point
- *  The 2d screen gaze point vector.
- * @param origin
- *  The gaze origin vector.
- * @param point
- *  The gaze point vector.
- * @param timestamp
- *  The timestamp of the sample.
- * @param trial_id
- *  The ID of the ongoing trial.
- * @param label
- *  An optional arbitrary label annotating the sample.
- * @return
- *  The allocated sample structure or NULL on failure.
- */
-gac_sample_t* gac_sample_create( vec2* screen_point, vec3* origin, vec3* point,
-        double timestamp, uint32_t trial_id, const char* label );
-
-/**
- * Create a deep copy of a sample. This needs to be freed with
- * gac_sample_destroy().
- *
- * @param sample
- *  The sample to copy
- * @return
- *  A pointer to the new sample or NULL.
- */
-gac_sample_t* gac_sample_copy( gac_sample_t* sample );
-
-/**
- * Deep copy of a sample to a target. This needs to be freed with
- * gac_sample_destroy().
- *
- * @param dest
- *  The location where the sample will be copied to.
- * @param sample
- *  The sample to copy
- * @return
- *  A pointer to the new sample or NULL.
- */
-bool gac_sample_copy_to( gac_sample_t* dest, gac_sample_t* sample );
-
-/**
- * Destroy a sample structure.
- *
- * @param sample
- *  A pointer to the structure to be destroyed.
- */
-void gac_sample_destroy( void* sample );
-
-/**
- * Initialise a sample structure.
- *
- * @param sample
- *  The sample structure to initialise.
- * @param screen_point
- *  The 2d screen gaze point vector.
- * @param origin
- *  The gaze origin vector.
- * @param point
- *  The gaze point vector.
- * @param timestamp
- *  The timestamp of the sample.
- * @param trial_id
- *  The ID of the ongoing trial.
- * @param label
- *  An optional arbitrary label annotating the sample.
- * @return
- *  True on success, false on failure.
- */
-bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
-        vec3* point, double timestamp, uint32_t trial_id, const char* label );
 
 /**
  * Cleanup the sample window. This removes all sample data from the sample

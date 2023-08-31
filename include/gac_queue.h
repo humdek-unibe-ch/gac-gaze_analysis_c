@@ -11,6 +11,9 @@
  *  You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#ifndef GAC_QUEUE_H
+#define GAC_QUEUE_H
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -153,3 +156,5 @@ bool gac_queue_remove( gac_queue_t* queue );
  *  True on success, false on failure.
  */
 bool gac_queue_set_rm_handler( gac_queue_t* queue, void ( *rm )( void* ));
+
+#endif
