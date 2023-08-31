@@ -19,10 +19,6 @@
 #define GAC_SCREEN_H
 
 #include "gac_plane.h"
-#include <cglm/vec2.h>
-#include <cglm/vec3.h>
-#include <cglm/mat4.h>
-#include <stdbool.h>
 
 /** ::gac_screen_s */
 typedef struct gac_screen_s gac_screen_t;
@@ -38,6 +34,10 @@ struct gac_screen_s
     float width;
     /** The height of the screen. */
     float height;
+    /** The width of the screen in an alternative unit (e.g. pixel). */
+    float width_alt;
+    /** The height of the screen in an alternative unit (e.g. pixel). */
+    float height_alt;
     /** The screen origin in 2d space. */
     vec2 origin;
     /** The underlying plane definition of the screen */
@@ -109,5 +109,29 @@ bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
  */
 bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
         vec2* point2d );
+
+/**
+ * The same as gac_screen_point() but using the alternative screen size.
+ */
+bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
+        vec2* point2d );
+
+/**
+ * Allows to set and alternative size in thecreen size in an alternate unit.
+ * This allows to use all `screen_alt_()` functions. These functions will act
+ * exactly like their counter part function without the `alt` suffix but use 2d
+ * points expressed in the alternative unit.
+ *
+ * @param screen
+ *  A pointer to a screen structure.
+ * @param width
+ *  The width of the screen expressed in an alternate unit (e.g. pixel).
+ * @param height
+ *  The height of the screen expressed in an alternate unit (e.g. pixel).
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_screen_set_size_alt( gac_screen_t* screen, float width,
+        float height );
 
 #endif

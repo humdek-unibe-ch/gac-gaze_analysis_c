@@ -72,7 +72,8 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
 {
     vec2 p_offset, p;
 
-    if( !gac_plane_point( &screen->plane, point3d, &p_offset ) )
+    if( screen == NULL
+            || !gac_plane_point( &screen->plane, point3d, &p_offset ) )
     {
         return false;
     }
@@ -80,6 +81,43 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
     glm_vec2_sub( p_offset, screen->origin, p );
     ( *point2d )[0] = p[0] / screen->width;
     ( *point2d )[1] = p[1] / screen->height;
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
+        vec2* point2d )
+{
+    vec2 p;
+
+    if( screen->height_alt == 0 || screen->width_alt == 0 || point2d == NULL )
+    {
+        return false;
+    }
+
+    if( !gac_screen_point( screen, point3d, &p ) )
+    {
+        return false;
+    }
+
+    ( *point2d )[0] = p[0] * screen->width_alt;
+    ( *point2d )[1] = p[1] * screen->height_alt;
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_screen_set_size_alt( gac_screen_t* screen, float width,
+        float height )
+{
+    if( screen == NULL )
+    {
+        return false;
+    }
+
+    screen->width_alt = width;
+    screen->height_alt = height;
 
     return true;
 }
