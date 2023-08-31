@@ -14,10 +14,14 @@
 #ifndef GAC_H
 #define GAC_H
 
+#include "gac_filter_fixation.h"
+#include "gac_filter_gap.h"
+#include "gac_filter_noise.h"
+#include "gac_filter_saccade.h"
+#include "gac_fixation.h"
 #include "gac_queue.h"
 #include "gac_sample.h"
 #include "gac_screen.h"
-#include "gac_fixation.h"
 #include "gac_saccade.h"
 #include <stdint.h>
 #include <cglm/vec2.h>
@@ -25,22 +29,15 @@
 #include <cglm/mat4.h>
 #include <sys/time.h>
 
+/** The maximal allowed points definig an area of interest. */
 #define GAC_AOI_MAX_POINTS 100
 
 /** ::gac_s */
 typedef struct gac_s gac_t;
-/** ::gac_aoi_s */
-typedef struct gac_aoi_s gac_aoi_t;
-/** ::gac_filter_gap_s */
-typedef struct gac_filter_gap_s gac_filter_gap_t;
-/** ::gac_filter_fixation_s */
-typedef struct gac_filter_fixation_s gac_filter_fixation_t;
-/** ::gac_filter_noise_s */
-typedef struct gac_filter_noise_s gac_filter_noise_t;
 /** ::gac_filter_parameter_s */
 typedef struct gac_filter_parameter_s gac_filter_parameter_t;
-/** ::gac_filter_saccade_s */
-typedef struct gac_filter_saccade_s gac_filter_saccade_t;
+/** ::gac_aoi_s */
+typedef struct gac_aoi_s gac_aoi_t;
 
 /**
  * The order of point triplets. This is used for checking
@@ -60,20 +57,6 @@ enum gac_aoi_orientation_e
 typedef enum gac_aoi_orientation_e gac_aoi_orientation_t;
 
 /**
- * The available noise filter types
- */
-enum gac_filter_noise_type_e
-{
-    /** Moving average filtering */
-    GAC_FILTER_NOISE_TYPE_AVERAGE,
-    /** [not implemented] Moving median filtering */
-    GAC_FILTER_NOISE_TYPE_MEDIAN,
-};
-
-/** #gac_filter_noise_type_e */
-typedef enum gac_filter_noise_type_e gac_filter_noise_type_t;
-
-/**
  * An area of interest (AOI) structure.
  */
 struct gac_aoi_s
@@ -91,80 +74,6 @@ struct gac_aoi_s
     float avg_edge_len;
     /** The number of points defining the AOI. */
     uint32_t count;
-};
-
-/**
- * The fixation filter structure holding filter parameters.
- */
-struct gac_filter_fixation_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** The pre-computed dispersion threshold at unit distance */
-    double normalized_dispersion_threshold;
-    /** The duration threashold */
-    double duration_threshold;
-    /** A flag indicating whether a fixation is ongoing. */
-    bool is_collecting;
-    /** A pointer to the sample queue */
-    gac_queue_t window;
-    /** Counter to keep track of new items in the parent queue. */
-    uint32_t new_samples;
-    /** The fixation duration */
-    double duration;
-    /** The fixation screen point */
-    vec2 screen_point;
-    /** The fixation point */
-    vec3 point;
-};
-
-/**
- * The saccade filter structure holding filter parameters.
- */
-struct gac_filter_saccade_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** The velocity threshold */
-    float velocity_threshold;
-    /** A flag indicating whether a saccade is ongoing */
-    bool is_collecting;
-    /** Counter to keep track of new items in the parent queue. */
-    uint32_t new_samples;
-    /** A pointer to the sample queue */
-    gac_queue_t window;
-};
-
-/**
- * The noise filter parameters.
- */
-struct gac_filter_noise_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** A flag indicating whether the noise filter is active or not */
-    bool is_enabled;
-    /** The noise filter window */
-    gac_queue_t window;
-    /** The mid-point counter */
-    uint32_t mid;
-    /** The noise filter type */
-    gac_filter_noise_type_t type;
-};
-
-/**
- * The gap fill-in filter structure.
- */
-struct gac_filter_gap_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** A flag indicating whether the filter is active or not */
-    bool is_enabled;
-    /** The maximal allowed gap length to be filled-in */
-    double max_gap_length;
-    /** The sample period to compute the number of required fill-in samples */
-    double sample_period;
 };
 
 /**
@@ -420,7 +329,7 @@ bool gac_aoi_intersect( vec2* p1, vec2* q1, vec2* p2, vec2* q2 );
  *
  * @param p
  *  A pointer to the point to check.
- * @parma s1
+ * @param s1
  *  The starting point of the segment.
  * @param s2
  *  The end point of the segment.
@@ -443,269 +352,6 @@ bool gac_aoi_point_on_segment( vec2* p, vec2* s1, vec2* s2 );
  *  The orientation of the three points.
  */
 gac_aoi_orientation_t gac_aoi_orientation_triplet( vec2* p, vec2* q, vec2* r );
-
-// FILTER //////////////////////////////////////////////////////////////////////
-
-/**
- * The fixation detection algorithm I-DT.
- *
- * @param filter
- *  The gap filter structure holding the configuration parameters.
- * @param sample
- *  The lastes sample
- * @param fixation
- *  A location where a detected fixation is stored. This is only valid if the
- *  function returns true.
- * @return
- *  True if a fixation was detected, false otherwise.
- */
-bool gac_filter_fixation( gac_filter_fixation_t* filter, gac_sample_t* sample,
-        gac_fixation_t* fixation );
-
-/**
- * Allocate a new fixation filter structure on the heap. This structure must be
- * freed.
- *
- * @param dispersion_threshold
- *  The dispersion thresholad in degrees.
- * @param duration_threshold
- *  The duration threshold in milliseconds.
- * @return
- *  The allocated fixation filter structure or NULL on failure.
- */
-gac_filter_fixation_t* gac_filter_fixation_create(
-        float dispersion_threshold, double duration_threshold );
-
-/**
- * Destroy the fixation filter structure.
- *
- * @param filter
- *  A pointer to the structure to destroy.
- */
-void gac_filter_fixation_destroy( gac_filter_fixation_t* filter );
-
-/**
- * Initialise a fixation filter structure.
- *
- * @param filter
- *  The filter structure to initialise.
- * @param dispersion_threshold
- *  The dispersion thresholad in degrees.
- * @param duration_threshold
- *  The duration threshold in milliseconds.
- * @return
- *  True on success, false on failure.
- */
-bool gac_filter_fixation_init( gac_filter_fixation_t* filter,
-        float dispersion_threshold, double duration_threshold );
-
-/**
- * Internal function to compute the fixation detection algorithm I-DT.
- * Do not use this function. INstead use either the function
- * gac_sample_window_fixation_filter() or gac_filter_fixation().
- *
- * @param filter
- *  The gap filter structure holding the configuration parameters.
- * @param sample
- *  The lastes sample
- * @param fixation
- *  A location where a detected fixation is stored. This is only valid if the
- *  function returns true.
- * @return
- *  True if a fixation was detected, false otherwise.
- */
-bool gac_filter_fixation_step( gac_filter_fixation_t* filter,
-        gac_sample_t* sample, gac_fixation_t* fixation );
-
-/**
- * Fill in gaps between the last sample and the current sample if any.
- * The number of samples to be filled in depends on the sample period.
- * To avoid filling up large gaps the gap filling is limited to a maximal
- * gap length (in milliseconds).
- * The sample passed to the function is added as well.
- *
- * @param filter
- *  The gap filter structure holding the configuration parameters.
- * @param samples
- *  The sample queue to be filled in
- * @param sample
- *  The lastes sample
- * @return
- *  The number of samples added to the sample window.
- */
-uint32_t gac_filter_gap( gac_filter_gap_t* filter, gac_queue_t* samples,
-        gac_sample_t* sample );
-
-/**
- * Allocate the filter gap structure on the heap. this needs to be freed.
- *
- * @param max_gap_length
- *  The maximal gap length in milliseconds to fil-in. Larger gaps are ignored.
- *  If set to 0 the filter is disabled.
- * @param sample_period
- *  The expected average sample period in milliseconds (1000 / sample_rate).
- * @return
- *  A pointer to the allocated filter gap structure.
- */
-gac_filter_gap_t* gac_filter_gap_create( double max_gap_length,
-        double sample_period );
-
-/**
- * Destroy the gap filter structure.
- *
- * @param filter
- *  A pointer to the structure to destroy.
- */
-void gac_filter_gap_destroy( gac_filter_gap_t* filter );
-
-/**
- * Initialise a filter gap structure.
- *
- * @param filter
- *  A pointer to the struct to be initialised.
- * @param max_gap_length
- *  The maximal gap length in milliseconds to fil-in. Larger gaps are ignored.
- *  If set to 0 the filter is disabled.
- * @param sample_period
- *  The expected average sample period in milliseconds (1000 / sample_rate).
- * @return
- *  True on success, false on failure.
- */
-bool gac_filter_gap_init( gac_filter_gap_t* filter, double max_gap_length,
-        double sample_period );
-
-/**
- * A noise filter. The filter consecutively collects samples into a window and
- * returns a filtered value when the window is full, otherwise the passed
- * sample is returned. The filter maintains its won sample window.
- *
- * @param filter
- *  The filter parameters.
- * @param sample
- *  The sample to add to the filter window.
- * @return
- *  A filtered sample if the filter window is full or the sample passed to the
- *  function otherwise.
- */
-gac_sample_t* gac_filter_noise( gac_filter_noise_t* filter,
-        gac_sample_t* sample );
-
-/**
- * Allocate the noise filter structure. This needs to be freed.
- *
- * @param type
- *  The noise filter type.
- * @param mid_idx
- *  The mid index of the window. This is used to compute the length of the
- *  window: window_length = mid_idx * 2 + 1. If set to 0 the filter is disabled.
- * @return
- *  A pointer to the allocated structure or NULL on failure.
- */
-gac_filter_noise_t* gac_filter_noise_create( gac_filter_noise_type_t type,
-        uint32_t mid_idx );
-
-/**
- * Destroy the noise filter structure.
- *
- * @param filter
- *  A pointer to the structure to destroy.
- */
-void gac_filter_noise_destroy( gac_filter_noise_t* filter );
-
-/**
- * Initialises a noise filter structure.
- *
- * @param filter
- *  A pointer to the structure to initialise.
- * @param type
- *  The noise filter type.
- * @param mid_idx
- *  The mid index of the window. This is used to compute the length of the
- *  window: window_length = mid_idx * 2 + 1. If set to 0 the filter is disabled.
- * @return
- *  True on success, false on failure.
- */
-bool gac_filter_noise_init( gac_filter_noise_t* filter,
-        gac_filter_noise_type_t type, uint32_t mid_idx );
-
-/**
- * A moving average noise filter. It computes the average sample point and
- * origin from all samples in the filter window and assigns the timestamp of
- * the median sample (the sample in the middle of the window) to the averaged
- * sample.
- *
- * @param filter
- *  The filter parameters
- * @return
- *  A new averaged sample if the filter window is full or the sample passed to
- *  the function otherwise.
- */
-gac_sample_t* gac_filter_noise_average( gac_filter_noise_t* filter );
-
-/**
- * The saccade detection algorithm I-VT.
- *
- * @param filter
- *  The filter parameters
- * @param sample
- *  The lastes sample
- * @param saccade
- *  A location where a detected saccade is stored. This is only valid if the
- *  function returns true.
- * @return
- *  True if a saccade was detected, false otherwise.
- */
-bool gac_filter_saccade( gac_filter_saccade_t* filter, gac_sample_t* sample,
-        gac_saccade_t* saccade );
-
-/**
- * Allocate a new saccade filter structure on the heap. This needs to be freed.
- *
- * @param velocity_threshold
- *  The velocity threshold in degrees per second.
- * @return
- *  A pointer to the allocated filter structure or NUll on failure.
- */
-gac_filter_saccade_t* gac_filter_saccade_create( float velocity_threshold );
-
-/**
- * Destroy the saccade filter structure.
- *
- * @param filter
- *  A pointer to the structure to destroy.
- */
-void gac_filter_saccade_destroy( gac_filter_saccade_t* filter );
-
-/**
- * Initialise a saccade filter structure.
- *
- * @param filter
- *  A pointer to the filter structure to initialise.
- * @param velocity_threshold
- *  The velocity threshold in degrees per second.
- * @return
- *  True on success, false on failure.
- */
-bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
-        float velocity_threshold );
-
-/**
- * Internal function to compute the I-VT algorithm. Do not use this function.
- * Instead use either the function gac_sample_window_saccade_filter() or
- * gac_filter_saccade().
- *
- * @param filter
- *  The filter parameters
- * @param sample
- *  The lastes sample
- * @param saccade
- *  A location where a detected saccade is stored. This is only valid if the
- *  function returns true.
- * @return
- *  True if a saccade was detected, false otherwise.
- */
-bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
-        gac_saccade_t* saccade );
 
 /**
  * Cleanup the sample window. This removes all sample data from the sample
@@ -838,68 +484,6 @@ uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origi
 uint32_t gac_sample_window_update_screen( gac_t* h, float ox, float oy, float oz,
         float px, float py, float pz, float sx, float sy, double timestamp,
         uint32_t trial_id, const char* label );
-
-// SAMPLES /////////////////////////////////////////////////////////////////////
-
-/**
- * Compute the average gaze point of samples in the sample window.
- *
- * @param samples
- *  A pointer to the sample window.
- * @param avg
- *  A location to store the average gaze point. This is only valid if the
- *  function returns true.
- * @param count
- *  The number of samples to perform the computation on, starting by the queue
- *  tail (newest first). If 0 is passed, all samples are included.
- */
-bool gac_samples_average_point( gac_queue_t* samples, vec3* avg,
-        uint32_t count );
-
-/**
- * Compute the average gaze origin of samples in the sample window.
- *
- * @param samples
- *  A pointer to the sample window.
- * @param avg
- *  A location to store the average gaze origin. This is only valid if the
- *  function returns true.
- * @param count
- *  The number of samples to perform the computation on, starting by the queue
- *  tail (newest first). If 0 is passed, all samples are included.
- */
-bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
-        uint32_t count );
-
-/**
- * Compute the average screen gaze point of samples in the sample window.
- *
- * @param samples
- *  A pointer to the sample window.
- * @param avg
- *  A location to store the average gaze point. This is only valid if the
- *  function returns true.
- * @param count
- *  The number of samples to perform the computation on, starting by the queue
- *  tail (newest first). If 0 is passed, all samples are included.
- */
-bool gac_samples_average_screen_point( gac_queue_t* samples, vec2* avg,
-        uint32_t count );
-
-/**
- * Compute the gaze point dispersion of samples in the sample window.
- *
- * @param samples
- *  A pointer to the sample window.
- * @param dispersion
- *  A location to store the dispersion value. This is only valid if the
- *  function returns true.
- * @param count
- *  The number of samples to perform the computation on, starting by the queue
- *  tail (newest first). If 0 is passed, all samples are included.
- */
-bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
-        uint32_t count );
 
 /**
  * Returns the version of the library.

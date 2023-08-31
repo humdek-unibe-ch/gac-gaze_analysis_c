@@ -108,3 +108,190 @@ bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
 
     return true;
 }
+
+/******************************************************************************/
+bool gac_samples_average_point( gac_queue_t* samples, vec3* avg,
+        uint32_t count )
+{
+    uint32_t i = 0;
+    gac_sample_t* sample;
+    gac_queue_item_t* item = samples->tail;
+
+    if( avg == NULL || samples->count == 0 )
+    {
+        return false;
+    }
+
+    glm_vec3_zero( *avg );
+
+    while( item != NULL )
+    {
+        sample = item->data;
+        glm_vec3_add( *avg, sample->point, *avg );
+        item = item->next;
+
+        i++;
+        if( i == count )
+        {
+            goto success;
+        }
+    }
+
+    if( count > 0 && i < count )
+    {
+        return false;
+    }
+
+success:
+    glm_vec3_divs( *avg, samples->count, *avg );
+    return true;
+}
+
+/******************************************************************************/
+bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
+        uint32_t count )
+{
+    uint32_t i = 0;
+    gac_sample_t* sample;
+    gac_queue_item_t* item = samples->tail;
+
+    if( avg == NULL || samples->count == 0 )
+    {
+        return false;
+    }
+
+    glm_vec3_zero( *avg );
+
+    while( item != NULL )
+    {
+        sample = item->data;
+        glm_vec3_add( *avg, sample->origin, *avg );
+        item = item->next;
+
+        i++;
+        if( i == count )
+        {
+            goto success;
+        }
+    }
+
+    if( count > 0 && i < count )
+    {
+        return false;
+    }
+
+success:
+    glm_vec3_divs( *avg, samples->count, *avg );
+    return true;
+}
+
+/******************************************************************************/
+bool gac_samples_average_screen_point( gac_queue_t* samples, vec2* avg,
+        uint32_t count )
+{
+    uint32_t i = 0;
+    gac_sample_t* sample;
+    gac_queue_item_t* item = samples->tail;
+
+    if( avg == NULL || samples->count == 0 )
+    {
+        return false;
+    }
+
+    glm_vec2_zero( *avg );
+
+    while( item != NULL )
+    {
+        sample = item->data;
+        glm_vec2_add( *avg, sample->screen_point, *avg );
+        item = item->next;
+
+        i++;
+        if( i == count )
+        {
+            goto success;
+        }
+    }
+
+    if( count > 0 && i < count )
+    {
+        return false;
+    }
+
+success:
+    glm_vec2_divs( *avg, samples->count, *avg );
+    return true;
+}
+
+/******************************************************************************/
+bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
+        uint32_t count )
+{
+    uint32_t i = 0;
+    gac_sample_t* sample;
+    gac_queue_item_t* item = samples->tail;
+    bool is_first = true;
+    vec3 max;
+    vec3 min;
+    glm_vec3_zero( min );
+    glm_vec3_zero( max );
+
+    if( dispersion == NULL )
+    {
+        return false;
+    }
+
+    while( item != NULL )
+    {
+        sample = item->data;
+        if( is_first )
+        {
+            glm_vec3_copy( sample->point, max );
+            glm_vec3_copy( sample->point, min );
+            is_first = false;
+        }
+        else
+        {
+            if( sample->point[0] > max[0] )
+            {
+                max[0] = sample->point[0];
+            }
+            if( sample->point[1] > max[1] )
+            {
+                max[1] = sample->point[1];
+            }
+            if( sample->point[2] > max[2] )
+            {
+                max[2] = sample->point[2];
+            }
+            if( sample->point[0] < min[0] )
+            {
+                min[0] = sample->point[0];
+            }
+            if( sample->point[1] < min[1] )
+            {
+                min[1] = sample->point[1];
+            }
+            if( sample->point[2] < min[2] )
+            {
+                min[2] = sample->point[2];
+            }
+        }
+        item = item->next;
+
+        i++;
+        if( i == count )
+        {
+            goto success;
+        }
+    }
+
+    if( count > 0 && i < count )
+    {
+        return false;
+    }
+
+success:
+    *dispersion = max[0] - min[0] + max[1] - min[1] + max[2] - min[2];
+    return true;
+}

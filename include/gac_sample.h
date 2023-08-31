@@ -1,5 +1,5 @@
 /**
- * Gaze analysis sample definitions.
+ * Gaze analysis sample definitions and helper functions.
  *
  * @file
  *  gac_sample.h
@@ -14,6 +14,7 @@
 #ifndef GAC_SAMPLE_H
 #define GAC_SAMPLE_H
 
+#include "gac_queue.h"
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
 #include <stdint.h>
@@ -124,5 +125,65 @@ void gac_sample_destroy( void* sample );
  */
 bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
         vec3* point, double timestamp, uint32_t trial_id, const char* label );
+
+/**
+ * Compute the average gaze point of samples in the sample window.
+ *
+ * @param samples
+ *  A pointer to the sample window.
+ * @param avg
+ *  A location to store the average gaze point. This is only valid if the
+ *  function returns true.
+ * @param count
+ *  The number of samples to perform the computation on, starting by the queue
+ *  tail (newest first). If 0 is passed, all samples are included.
+ */
+bool gac_samples_average_point( gac_queue_t* samples, vec3* avg,
+        uint32_t count );
+
+/**
+ * Compute the average gaze origin of samples in the sample window.
+ *
+ * @param samples
+ *  A pointer to the sample window.
+ * @param avg
+ *  A location to store the average gaze origin. This is only valid if the
+ *  function returns true.
+ * @param count
+ *  The number of samples to perform the computation on, starting by the queue
+ *  tail (newest first). If 0 is passed, all samples are included.
+ */
+bool gac_samples_average_origin( gac_queue_t* samples, vec3* avg,
+        uint32_t count );
+
+/**
+ * Compute the average screen gaze point of samples in the sample window.
+ *
+ * @param samples
+ *  A pointer to the sample window.
+ * @param avg
+ *  A location to store the average gaze point. This is only valid if the
+ *  function returns true.
+ * @param count
+ *  The number of samples to perform the computation on, starting by the queue
+ *  tail (newest first). If 0 is passed, all samples are included.
+ */
+bool gac_samples_average_screen_point( gac_queue_t* samples, vec2* avg,
+        uint32_t count );
+
+/**
+ * Compute the gaze point dispersion of samples in the sample window.
+ *
+ * @param samples
+ *  A pointer to the sample window.
+ * @param dispersion
+ *  A location to store the dispersion value. This is only valid if the
+ *  function returns true.
+ * @param count
+ *  The number of samples to perform the computation on, starting by the queue
+ *  tail (newest first). If 0 is passed, all samples are included.
+ */
+bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
+        uint32_t count );
 
 #endif

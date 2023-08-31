@@ -13,6 +13,10 @@ lib_LTLIBRARIES = libgac.la
 
 gacdir=$(includedir)
 gac_HEADERS = include/gac.h \
+			  include/gac_filter_fixation.h \
+			  include/gac_filter_gap.h \
+			  include/gac_filter_noise.h \
+			  include/gac_filter_saccade.h \
 			  include/gac_fixation.h \
 			  include/gac_plane.h \
 			  include/gac_queue.h \
@@ -21,6 +25,10 @@ gac_HEADERS = include/gac.h \
 			  include/gac_screen.h
 
 libgac_la_SOURCES = src/gac.c \
+					src/gac_filter_fixation.c \
+					src/gac_filter_gap.c \
+					src/gac_filter_noise.c \
+					src/gac_filter_saccade.c \
 					src/gac_fixation.c \
 					src/gac_plane.c \
 					src/gac_queue.c \
