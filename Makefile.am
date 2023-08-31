@@ -12,7 +12,9 @@ AM_CFLAGS = -I./include \
 lib_LTLIBRARIES = libgac.la
 
 gacdir=$(includedir)
-gac_HEADERS = include/gac.h
+gac_HEADERS = include/gac.h \
+			  include/gac_queue.h
 
-libgac_la_SOURCES = src/gac.c
+libgac_la_SOURCES = src/gac.c \
+					src/gac_queue.c
 libgac_la_LDFLAGS = -no-undefined -version-number $(VMAJ):$(VMIN):$(VREV)

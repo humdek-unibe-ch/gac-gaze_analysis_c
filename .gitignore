@@ -10,8 +10,8 @@ example/saccades_screen.csv
 .libs/
 libgac.la
 src/.libs/
-src/gac.lo
-src/gac.o
+src/*.lo
+src/*.o
 
 
 # http://www.gnu.org/software/automake

@@ -5,7 +5,8 @@
  */
 
 #include "minunit.h"
-#include "gac.h"
+#include "gac_queue.h"
+#include <stdlib.h>
 
 static gac_queue_t q_stack;
 static gac_queue_t* q_heap;
