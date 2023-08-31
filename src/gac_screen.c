@@ -58,6 +58,8 @@ bool gac_screen_init( gac_screen_t* screen, vec3* top_left, vec3* top_right,
 
     screen->width = glm_vec3_norm( screen->plane.e1 );
     screen->height = glm_vec3_norm( screen->plane.e2 );
+    screen->resolution_x = 0;
+    screen->resolution_y = 0;
     screen->_me = NULL;
     glm_vec2_zero( screen->origin );
 
@@ -91,7 +93,8 @@ bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
 {
     vec2 p;
 
-    if( screen->height_alt == 0 || screen->width_alt == 0 || point2d == NULL )
+    if( screen->resolution_x == 0 || screen->resolution_y == 0
+            || point2d == NULL )
     {
         return false;
     }
@@ -101,23 +104,23 @@ bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
         return false;
     }
 
-    ( *point2d )[0] = p[0] * screen->width_alt;
-    ( *point2d )[1] = p[1] * screen->height_alt;
+    ( *point2d )[0] = p[0] * screen->resolution_x;
+    ( *point2d )[1] = p[1] * screen->resolution_y;
 
     return true;
 }
 
 /******************************************************************************/
-bool gac_screen_set_size_alt( gac_screen_t* screen, float width,
-        float height )
+bool gac_screen_set_size_alt( gac_screen_t* screen, float resolution_x,
+        float resolution_y )
 {
     if( screen == NULL )
     {
         return false;
     }
 
-    screen->width_alt = width;
-    screen->height_alt = height;
+    screen->resolution_x = resolution_x;
+    screen->resolution_y = resolution_y;
 
     return true;
 }

@@ -34,10 +34,10 @@ struct gac_screen_s
     float width;
     /** The height of the screen. */
     float height;
-    /** The width of the screen in an alternative unit (e.g. pixel). */
-    float width_alt;
-    /** The height of the screen in an alternative unit (e.g. pixel). */
-    float height_alt;
+    /** The width of the screen resolution. */
+    float resolution_x;
+    /** The height of the screen resolution. */
+    float resolution_y;
     /** The screen origin in 2d space. */
     vec2 origin;
     /** The underlying plane definition of the screen */
@@ -111,27 +111,28 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
         vec2* point2d );
 
 /**
- * The same as gac_screen_point() but using the alternative screen size.
+ * The same as gac_screen_point() but storing the resulting 2d point in terms
+ * of screen resolution with (0, 0) being the top left corner of the screen.
  */
 bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
         vec2* point2d );
 
 /**
- * Allows to set and alternative size in thecreen size in an alternate unit.
- * This allows to use all `screen_alt_()` functions. These functions will act
- * exactly like their counter part function without the `alt` suffix but use 2d
- * points expressed in the alternative unit.
+ * Set the screen resolution. Thsi allows to use all functions with an `alt`
+ * suffix. These functions will act exactly like their counter part function
+ * without the `alt` suffix but use 2d points expressed in the screen
+ * resolution.
  *
  * @param screen
  *  A pointer to a screen structure.
- * @param width
- *  The width of the screen expressed in an alternate unit (e.g. pixel).
- * @param height
- *  The height of the screen expressed in an alternate unit (e.g. pixel).
+ * @param resolution_x
+ *  The width of the screen resolution.
+ * @param resolution_y
+ *  The height of the screen resolution.
  * @return
  *  True on success, false on failure.
  */
-bool gac_screen_set_size_alt( gac_screen_t* screen, float width,
-        float height );
+bool gac_screen_set_resolution( gac_screen_t* screen, float resolution_x,
+        float resolution_y );
 
 #endif
