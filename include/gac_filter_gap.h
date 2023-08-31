@@ -14,10 +14,7 @@
 #ifndef GAC_FILTER_GAP_H
 #define GAC_FILTER_GAP_H
 
-#include "gac_queue.h"
 #include "gac_sample.h"
-#include <stdbool.h>
-#include <stdint.h>
 
 /** ::gac_filter_gap_s */
 typedef struct gac_filter_gap_s gac_filter_gap_t;

@@ -14,10 +14,7 @@
 #ifndef GAC_FILTER_SACCADE_H
 #define GAC_FILTER_SACCADE_H
 
-#include "gac_queue.h"
 #include "gac_saccade.h"
-#include <stdbool.h>
-#include <stdint.h>
 
 /** ::gac_filter_saccade_s */
 typedef struct gac_filter_saccade_s gac_filter_saccade_t;

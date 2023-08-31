@@ -15,9 +15,6 @@
 #define GAC_FIXATION_H
 
 #include "gac_sample.h"
-#include <cglm/vec2.h>
-#include <cglm/vec3.h>
-#include <stdbool.h>
 
 /** ::gac_fixation_s */
 typedef struct gac_fixation_s gac_fixation_t;

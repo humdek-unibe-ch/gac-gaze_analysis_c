@@ -14,10 +14,7 @@
 #ifndef GAC_FILTER_FIXATION_H
 #define GAC_FILTER_FIXATION_H
 
-#include "gac_queue.h"
 #include "gac_fixation.h"
-#include <stdbool.h>
-#include <stdint.h>
 
 /** ::gac_filter_fixation_s */
 typedef struct gac_filter_fixation_s gac_filter_fixation_t;

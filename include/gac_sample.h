@@ -17,8 +17,6 @@
 #include "gac_queue.h"
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
-#include <stdint.h>
-#include <stdbool.h>
 
 /** ::gac_sample_s */
 typedef struct gac_sample_s gac_sample_t;
