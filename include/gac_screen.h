@@ -113,12 +113,14 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
 /**
  * The same as gac_screen_point() but storing the resulting 2d point in terms
  * of screen resolution with (0, 0) being the top left corner of the screen.
+ * Note that this function will always return false if
+ * gac_screen_set_resolution() was never called.
  */
 bool gac_screen_point_res( gac_screen_t* screen, vec3* point3d,
         vec2* point2d );
 
 /**
- * Set the screen resolution. Thsi allows to use all functions with an `res`
+ * Set the screen resolution. This allows to use all functions with an `res`
  * suffix. These functions will act exactly like their counter part function
  * without the `res` suffix but use 2d points expressed in the screen
  * resolution.

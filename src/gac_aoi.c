@@ -44,6 +44,22 @@ bool gac_aoi_add_point( gac_aoi_t* aoi, float x, float y )
 }
 
 /******************************************************************************/
+bool gac_aoi_add_point_res( gac_aoi_t* aoi, float x_res, float y_res )
+{
+    float x, y;
+
+    if( aoi->resolution_x == 0 || aoi->resolution_y == 0 )
+    {
+        return false;
+    }
+
+    x =  x_res / aoi->resolution_x;
+    y =  y_res / aoi->resolution_y;
+
+    return gac_aoi_add_point( aoi, x, y );
+}
+
+/******************************************************************************/
 gac_aoi_t* gac_aoi_create()
 {
     gac_aoi_t* aoi = malloc( sizeof( gac_aoi_t ) );
@@ -78,7 +94,6 @@ bool gac_aoi_includes_point( gac_aoi_t* aoi, float x, float y )
     uint32_t count = 0;
     vec2 point = { x, y };
 
-
     if( aoi == NULL && aoi->count < 3 )
     {
         return false;
@@ -101,7 +116,22 @@ bool gac_aoi_includes_point( gac_aoi_t* aoi, float x, float y )
     {
         return true;
     }
+}
 
+/******************************************************************************/
+bool gac_aoi_includes_point_res( gac_aoi_t* aoi, float x_res, float y_res )
+{
+    float x, y;
+
+    if( aoi->resolution_x == 0 || aoi->resolution_y == 0 )
+    {
+        return false;
+    }
+
+    x =  x_res / aoi->resolution_x;
+    y =  y_res / aoi->resolution_y;
+
+    return gac_aoi_includes_point( aoi, x, y );
 }
 
 /******************************************************************************/
@@ -115,6 +145,8 @@ bool gac_aoi_init( gac_aoi_t* aoi )
     }
 
     glm_vec2_zero( aoi->ray_origin );
+    aoi->resolution_x = 0;
+    aoi->resolution_y = 0;
     aoi->count = 0;
     aoi->avg_edge_len = 0;
     aoi->_me = NULL;
@@ -205,4 +237,19 @@ gac_aoi_orientation_t gac_aoi_orientation_triplet( vec2* p, vec2* q, vec2* r )
     {
         return GAC_AOI_ORIENTATION_COUNTER_CLOCKWISE;
     }
+}
+
+/******************************************************************************/
+bool gac_aoi_set_resolution( gac_aoi_t* aoi, float resolution_x,
+        float resolution_y )
+{
+    if( aoi == NULL )
+    {
+        return false;
+    }
+
+    aoi->resolution_x = resolution_x;
+    aoi->resolution_y = resolution_y;
+
+    return true;
 }

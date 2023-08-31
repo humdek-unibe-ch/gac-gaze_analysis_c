@@ -59,6 +59,10 @@ struct gac_aoi_s
     float avg_edge_len;
     /** The number of points defining the AOI. */
     uint32_t count;
+    /** The width of the screen resolution. */
+    float resolution_x;
+    /** The height of the screen resolution. */
+    float resolution_y;
 };
 
 /**
@@ -77,6 +81,13 @@ struct gac_aoi_s
  *  True on success, false on failure.
  */
 bool gac_aoi_add_point( gac_aoi_t* aoi, float x, float y );
+
+/**
+ * The same as gac_aoi_add_point() but accepting the input coordinates in
+ * pixels instead of normalized values. Note that this function will always
+ * return false if gac_aoi_set_resolution() was never called.
+ */
+bool gac_aoi_add_point_res( gac_aoi_t* aoi, float x_res, float y_res );
 
 /**
  * Allocate a new AOI structure. This must be freed with gac_aoi_destroy().
@@ -112,6 +123,13 @@ void gac_aoi_destroy( gac_aoi_t* aoi );
  *  True if the point is inside the AOI, false otherwise.
  */
 bool gac_aoi_includes_point( gac_aoi_t* aoi, float x, float y );
+
+/**
+ * The same as gac_aoi_includes_point() but accepting the input coordinates in
+ * pixels instead of normalized values. Note that this function will always
+ * return false if gac_aoi_set_resolution() was never called.
+ */
+bool gac_aoi_includes_point_res( gac_aoi_t* aoi, float x_res, float y_res );
 
 /**
  * Initialise the AOI structure.
@@ -168,5 +186,23 @@ bool gac_aoi_point_on_segment( vec2* p, vec2* s1, vec2* s2 );
  *  The orientation of the three points.
  */
 gac_aoi_orientation_t gac_aoi_orientation_triplet( vec2* p, vec2* q, vec2* r );
+
+/**
+ * Set the screen resolution. This allows to use all functions with an `res`
+ * suffix. These functions will act exactly like their counter part function
+ * without the `res` suffix but use 2d points expressed in the screen
+ * resolution.
+ *
+ * @param aoi
+ *  A pointer to an aoi structure.
+ * @param resolution_x
+ *  The width of the screen resolution.
+ * @param resolution_y
+ *  The height of the screen resolution.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_aoi_set_resolution( gac_aoi_t* aoi, float resolution_x,
+        float resolution_y );
 
 #endif
