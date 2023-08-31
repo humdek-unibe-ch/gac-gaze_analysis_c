@@ -2,7 +2,7 @@
  * Gaze analysis sample definitions.
  *
  * @file
- *  gac.h
+ *  gac_sample.h
  * @author
  *  Simon Maurer
  * @license

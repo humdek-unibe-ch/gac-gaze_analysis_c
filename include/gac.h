@@ -17,6 +17,8 @@
 #include "gac_queue.h"
 #include "gac_sample.h"
 #include "gac_screen.h"
+#include "gac_fixation.h"
+#include "gac_saccade.h"
 #include <stdint.h>
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
@@ -39,10 +41,6 @@ typedef struct gac_filter_noise_s gac_filter_noise_t;
 typedef struct gac_filter_parameter_s gac_filter_parameter_t;
 /** ::gac_filter_saccade_s */
 typedef struct gac_filter_saccade_s gac_filter_saccade_t;
-/** ::gac_fixation_s */
-typedef struct gac_fixation_s gac_fixation_t;
-/** ::gac_saccade_s */
-typedef struct gac_saccade_s gac_saccade_t;
 
 /**
  * The order of point triplets. This is used for checking
@@ -93,36 +91,6 @@ struct gac_aoi_s
     float avg_edge_len;
     /** The number of points defining the AOI. */
     uint32_t count;
-};
-
-/**
- * A fixation sample.
- */
-struct gac_fixation_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** The 2d fixation gaze point on the screen. */
-    vec2 screen_point;
-    /** The fixation gaze point. */
-    vec3 point;
-    /** The fixation duration in milliseconds. */
-    double duration;
-    /** The first sample of the fixation. */
-    gac_sample_t first_sample;
-};
-
-/**
- * A saccade sample.
- */
-struct gac_saccade_s
-{
-    /** Self-pointer to allocated structure for memory management. */ 
-    void* _me;
-    /** The first sample of the saccade. */
-    gac_sample_t first_sample;
-    /** The last sample of the saccade. */
-    gac_sample_t last_sample;
 };
 
 /**
@@ -738,104 +706,6 @@ bool gac_filter_saccade_init( gac_filter_saccade_t* filter,
  */
 bool gac_filter_saccade_step( gac_filter_saccade_t* filter, gac_sample_t* sample,
         gac_saccade_t* saccade );
-
-// FIXATION ////////////////////////////////////////////////////////////////////
-
-/**
- * Allocate a new fixation structure on the heap. This structure must be
- * freed.
- *
- * @param screen_point
- *  The fixation screen point.
- * @param point
- *  The fixation point.
- * @param duration
- *  The duration of the fixation.
- * @param first_sample
- *  The first sample in the fixation.
- * @return
- *  The allocated fixation structure or NULL on failure.
- */
-gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
-        double duration, gac_sample_t* first_sample );
-
-/**
- * Destroy a fixation structure.
- *
- * @param fixation
- *  A pointer to the fixation structure to destroy.
- */
-void gac_fixation_destroy( gac_fixation_t* fixation );
-
-/**
- * Initialise a fixation structure.
- *
- * @param fixation
- *  The fixation structure to initialise.
- * @param screen_point
- *  The fixation screen point.
- * @param point
- *  The fixation point.
- * @param duration
- *  The duration of the fixation.
- * @param first_sample
- *  The first sample in the fixation.
- * @return
- *  True on success, false on failure.
- */
-bool gac_fixation_init( gac_fixation_t* fixation, vec2* screen_point,
-        vec3* point, double duration, gac_sample_t* first_sample );
-
-/**
- * Compute a dispersion threashold assuming a unit distance. To get the actual
- * dispersion threshold multiply this by the distance of the gaze origin to the
- * gaze point.
- *
- * @param angle
- *  The angel in degrees for which the dispersion threshold is computetd.
- *  Usual values range from 0.5 to 1 degree.
- * @return
- *  The normalized dispersion threshold.
- */
-float gac_fixation_normalised_dispersion_threshold( float angle );
-
-// SACCADE /////////////////////////////////////////////////////////////////////
-
-/**
- * Allocate a new saccade structure on the heap. This needs to be freed.
- *
- * @param first_sample
- *  The first sample of the saccade, holding the source point.
- * @param last_sample
- *  The last sample of the saccade, holding the target point.
- * @return
- *  The allocated saccade structure on success or NULL on failure.
- */
-gac_saccade_t* gac_saccade_create( gac_sample_t* first_sample,
-        gac_sample_t* last_sample );
-
-/**
- * Destroy a saccade structure.
- *
- * @param saccade
- *  A pointer to the saccade structure to destroy.
- */
-void gac_saccade_destroy( gac_saccade_t* saccade );
-
-/**
- * Initialise a saccade structure.
- *
- * @param saccade
- *  A pointer to the saccade structure to initialise.
- * @param first_sample
- *  The first sample of the saccade, holding the source point.
- * @param last_sample
- *  The last sample of the saccade, holding the target point.
- * @return
- *  True on success, false on failure.
- */
-bool gac_saccade_init( gac_saccade_t* saccade, gac_sample_t* first_sample,
-        gac_sample_t* last_sample );
 
 /**
  * Cleanup the sample window. This removes all sample data from the sample

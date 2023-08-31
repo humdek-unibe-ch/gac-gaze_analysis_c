@@ -6,7 +6,7 @@
  * of the vector top left -> bottom left.
  *
  * @file
- *  gac.h
+ *  gac_screen.h
  * @author
  *  Simon Maurer
  * @license
