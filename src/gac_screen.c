@@ -88,7 +88,7 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
 }
 
 /******************************************************************************/
-bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
+bool gac_screen_point_res( gac_screen_t* screen, vec3* point3d,
         vec2* point2d )
 {
     vec2 p;
@@ -111,7 +111,7 @@ bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
 }
 
 /******************************************************************************/
-bool gac_screen_set_size_alt( gac_screen_t* screen, float resolution_x,
+bool gac_screen_set_resolution( gac_screen_t* screen, float resolution_x,
         float resolution_y )
 {
     if( screen == NULL )

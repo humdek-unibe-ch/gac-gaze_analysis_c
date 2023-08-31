@@ -114,13 +114,13 @@ bool gac_screen_point( gac_screen_t* screen, vec3* point3d,
  * The same as gac_screen_point() but storing the resulting 2d point in terms
  * of screen resolution with (0, 0) being the top left corner of the screen.
  */
-bool gac_screen_point_alt( gac_screen_t* screen, vec3* point3d,
+bool gac_screen_point_res( gac_screen_t* screen, vec3* point3d,
         vec2* point2d );
 
 /**
- * Set the screen resolution. Thsi allows to use all functions with an `alt`
+ * Set the screen resolution. Thsi allows to use all functions with an `res`
  * suffix. These functions will act exactly like their counter part function
- * without the `alt` suffix but use 2d points expressed in the screen
+ * without the `res` suffix but use 2d points expressed in the screen
  * resolution.
  *
  * @param screen
