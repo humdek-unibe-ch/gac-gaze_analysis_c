@@ -33,6 +33,11 @@ struct gac_saccade_s
 };
 
 /**
+ *
+ */
+gac_saccade_t* gac_saccade_copy( gac_saccade_t* saccade );
+
+/**
  * Allocate a new saccade structure on the heap. This needs to be freed.
  *
  * @param first_sample

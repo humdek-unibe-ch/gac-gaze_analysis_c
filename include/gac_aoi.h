@@ -14,15 +14,25 @@
 #ifndef GAC_AOI_H
 #define GAC_AOI_H
 
+#include "gac_fixation.h"
+#include "gac_saccade.h"
 #include <stdint.h>
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
 
+/** The maximal allowed area of intersts to analyse. */
+#define GAC_AOI_MAX 100
 /** The maximal allowed points definig an area of interest. */
 #define GAC_AOI_MAX_POINTS 100
 
 /** ::gac_aoi_s */
 typedef struct gac_aoi_s gac_aoi_t;
+/** ::gac_aoi_analysis_s */
+typedef struct gac_aoi_analysis_s gac_aoi_analysis_t;
+/** ::gac_aoi_collection_s */
+typedef struct gac_aoi_collection_s gac_aoi_collection_t;
+/** ::gac_aoi_collection_analysis_s */
+typedef struct gac_aoi_collection_analysis_s gac_aoi_collection_analysis_t;
 
 /**
  * The order of point triplets. This is used for checking
@@ -42,27 +52,93 @@ enum gac_aoi_orientation_e
 typedef enum gac_aoi_orientation_e gac_aoi_orientation_t;
 
 /**
+ *
+ */
+struct gac_aoi_analysis_s
+{
+    /** Self-pointer to allocated structure for memory management. */ 
+    void* _me;
+    uint32_t aoi_visited_before_count;
+    uint32_t fixation_count;
+    double fixation_count_relative;
+    double dwell_time;
+    double dwell_time_relative;
+    gac_fixation_t* first_fixation;
+    gac_saccade_t* first_saccade;
+};
+
+/**
  * An area of interest (AOI) structure.
  */
 struct gac_aoi_s
 {
     /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
-    /**
-     * The points forming the AOI. At least 3 points are required for a
-     * valid AOI.
-     */
-    vec2 points[GAC_AOI_MAX_POINTS];
     /** An arbitary point outside the AOI. */
     vec2 ray_origin;
     /** The average length of an AOI edge. */
     float avg_edge_len;
-    /** The number of points defining the AOI. */
-    uint32_t count;
     /** The width of the screen resolution. */
     float resolution_x;
     /** The height of the screen resolution. */
     float resolution_y;
+    /** A label describing the aoi. */
+    char* label;
+    /**
+     * The points forming the AOI. At least 3 points are required for a
+     * valid AOI.
+     */
+    struct {
+        /** The point list. */
+        vec2 items[GAC_AOI_MAX_POINTS];
+        /** The number of points defining the AOI. */
+        uint32_t count;
+    } points;
+    /**
+     * A axis aligned bounding box to quickly do a coars check if a point is
+     * outside the polygon.
+     */
+    struct {
+        float x_min;
+        float x_max;
+        float y_min;
+        float y_max;
+    } bounding_box;
+    /** The analysis data of the AOI. */
+    gac_aoi_analysis_t* analysis;
+};
+
+/**
+ * The AOI collection analysis data structure.
+ */
+struct gac_aoi_collection_analysis_s
+{
+    /** Self-pointer to allocated structure for memory management. */ 
+    void* _me;
+    /** The total fixation count in all AOIs. */
+    uint32_t fixation_count;
+    /** The number of visited aois. */
+    uint32_t aoi_visited_count;
+    /** The summed duration of all fixations. */
+    double dwell_time;
+};
+
+/**
+ * A collection of AOIs.
+ */
+struct gac_aoi_collection_s
+{
+    /** Self-pointer to allocated structure for memory management. */ 
+    void* _me;
+    /** The collection of individual AOIs. */
+    struct {
+        /** The aoi list. */
+        gac_aoi_t* items[GAC_AOI_MAX];
+        /** The number of AOIs in the list. */
+        uint32_t count;
+    } aois;
+    /** The analysis data of the AOI collection. */
+    gac_aoi_collection_analysis_t* analysis;
 };
 
 /**
@@ -90,12 +166,31 @@ bool gac_aoi_add_point( gac_aoi_t* aoi, float x, float y );
 bool gac_aoi_add_point_res( gac_aoi_t* aoi, float x_res, float y_res );
 
 /**
+ *
+ */
+bool gac_aoi_add_rect( gac_aoi_t* aoi, float x, float y, float width,
+        float height );
+
+/**
+ *
+ */
+bool gac_aoi_add_rect_res( gac_aoi_t* aoi, float x, float y, float width,
+        float height );
+
+/**
+ *
+ */
+gac_aoi_t* gac_aoi_copy( gac_aoi_t* aoi );
+
+/**
  * Allocate a new AOI structure. This must be freed with gac_aoi_destroy().
  *
+ * @param label
+ *  An arbitary label, describing the AOI.
  * @return
  *  A pointer to the allocated structure or NULL on failure.
  */
-gac_aoi_t* gac_aoi_create();
+gac_aoi_t* gac_aoi_create( const char* label );
 
 /**
  * Destroies a AOI structure. This works for structures created with
@@ -136,10 +231,12 @@ bool gac_aoi_includes_point_res( gac_aoi_t* aoi, float x_res, float y_res );
  *
  * @param aoi
  *  A pointer to the aoi structure to initialise.
+ * @param label
+ *  An arbitary label, describing the AOI.
  * @return
  *  True on success, false otherwise.
  */
-bool gac_aoi_init( gac_aoi_t* aoi );
+bool gac_aoi_init( gac_aoi_t* aoi, const char* label );
 
 /**
  * Checks whether the line segment p1q1 intersects with the line segment p2q2.
@@ -204,5 +301,29 @@ gac_aoi_orientation_t gac_aoi_orientation_triplet( vec2* p, vec2* q, vec2* r );
  */
 bool gac_aoi_set_resolution( gac_aoi_t* aoi, float resolution_x,
         float resolution_y );
+
+gac_aoi_analysis_t* gac_aoi_analysis_copy( gac_aoi_analysis_t* analysis );
+gac_aoi_analysis_t* gac_aoi_analysis_create();
+void gac_aoi_analysis_destroy( gac_aoi_analysis_t* analysis );
+bool gac_aoi_analysis_init( gac_aoi_analysis_t* analysis );
+bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi );
+bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic );
+bool gac_aoi_collection_analyse_fixation( gac_aoi_collection_t* aoic,
+        gac_fixation_t* fixation );
+bool gac_aoi_collection_assign( gac_aoi_collection_t* aoic, gac_aoi_t* aoi );
+gac_aoi_collection_t* gac_aoi_collection_create();
+/**
+ *
+ */
+void gac_aoi_collection_destroy( gac_aoi_collection_t* aoic );
+
+/**
+ *
+ */
+bool gac_aoi_collection_init( gac_aoi_collection_t* aoic );
+gac_aoi_collection_analysis_t* gac_aoi_collection_analysis_create();
+void gac_aoi_collection_analysis_destroy(
+        gac_aoi_collection_analysis_t* analysis );
+bool gac_aoi_collection_analysis_init( gac_aoi_collection_analysis_t* analysis );
 
 #endif

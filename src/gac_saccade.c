@@ -10,6 +10,17 @@
 #include <stdlib.h>
 
 /******************************************************************************/
+gac_saccade_t* gac_saccade_copy( gac_saccade_t* saccade )
+{
+    if( saccade == NULL )
+    {
+        return NULL;
+    }
+
+    return gac_saccade_create( &saccade->first_sample, &saccade->last_sample );
+}
+
+/******************************************************************************/
 gac_saccade_t* gac_saccade_create( gac_sample_t* first_sample,
         gac_sample_t* last_sample )
 {

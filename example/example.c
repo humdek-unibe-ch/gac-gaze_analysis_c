@@ -9,6 +9,7 @@
  */
 
 #include "gac.h"
+#include "gac_aoi.h"
 #include <csv.h>
 #include <string.h>
 
@@ -56,12 +57,14 @@ bool atob( const char* a )
  *  The number of new samples to process
  * @param h
  *  A pointer to the gaze analysis handler
+ * @param aoi
+ *  A pointer to an aoi structure.
  * @param fp_fixations
  *  A pointer to a file handler for the fixation output.
  * @param fp_saccades
  *  A pointer to a file handler for the saccade output.
  */
-void compute( int count, void* h, FILE* fp_fixations, FILE* fp_saccades )
+void compute( int count, void* h, gac_aoi_collection_t* aoic, FILE* fp_fixations, FILE* fp_saccades )
 {
     int i;
     bool res;
@@ -85,6 +88,7 @@ void compute( int count, void* h, FILE* fp_fixations, FILE* fp_saccades )
                     fixation.point[1],
                     fixation.point[2],
                     fixation.duration );
+            gac_aoi_collection_analyse_fixation( aoic, &fixation );
             gac_fixation_destroy( &fixation );
         }
         res = gac_sample_window_saccade_filter( h, &saccade );
@@ -128,6 +132,10 @@ int main(int argc, char* argv[])
     FILE* fp_saccades;
     FILE* fp_fixations_screen;
     FILE* fp_saccades_screen;
+    gac_aoi_t aoi;
+    gac_aoi_t* aoip;
+    gac_aoi_collection_t aoic;
+    unsigned int j;
 
     void* vals[100];
     void* vals_ptr;
@@ -183,6 +191,32 @@ int main(int argc, char* argv[])
     fprintf( fp_saccades, "%s\n", saccade_header );
     fprintf( fp_saccades_screen, "%s\n", saccade_header );
 
+    // init aoi
+    gac_aoi_init( &aoi, "aoi1" );
+    gac_aoi_set_resolution( &aoi, 2560, 1440 );
+    gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
+    gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_destroy( &aoi );
+    gac_aoi_init( &aoi, "aoi2" );
+    gac_aoi_set_resolution( &aoi, 2560, 1440 );
+    gac_aoi_add_rect( &aoi, 0.5, 0.75, 0.2, 0.2 );
+    gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_destroy( &aoi );
+    gac_aoi_init( &aoi, "aoi3" );
+    gac_aoi_set_resolution( &aoi, 2560, 1440 );
+    gac_aoi_add_rect( &aoi, 0.1, 0.3, 0.2, 0.1 );
+    gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_destroy( &aoi );
+    /* printf( "aoi\n origin: [%f, %f]\n avg_edge_len: %f\n bounding_box: [%f, %f, %f, %f]\n points: ", */
+    /*         aoi.ray_origin[0], aoi.ray_origin[1], aoi.avg_edge_len, */
+    /*         aoi.bounding_box.x_min, aoi.bounding_box.x_max, */
+    /*         aoi.bounding_box.y_min, aoi.bounding_box.y_max ); */
+    /* for( j = 0; j < aoi.points.count; j++ ) */
+    /* { */
+    /*     printf( "[%f, %f], ", aoi.points.items[j][0], aoi.points.items[j][1] ); */
+    /* } */
+    /* printf( "\n" ); */
+
     // read sample csv file
     while( fgets( line, 10000, fp ) )
     {
@@ -219,14 +253,15 @@ int main(int argc, char* argv[])
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[0] ), atof( vals[1] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        compute( count, &h, fp_fixations, fp_saccades );
+        compute( count, &h, &aoic, fp_fixations, fp_saccades );
 
         // perform analysis by computing 2d data from screen coordinates
         count = gac_sample_window_update( &h_screen,
                 atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        compute( count, &h_screen, fp_fixations_screen, fp_saccades_screen );
+        compute( count, &h_screen, &aoic, fp_fixations_screen,
+                fp_saccades_screen );
 
 next_loop:
         for( i = 0; i < 100; i++ )
@@ -235,7 +270,27 @@ next_loop:
         }
     }
 
+    gac_aoi_collection_analyse_finalise( &aoic );
+
+    printf( "aoi analysis:\n");
+    for( j = 0; j < aoic.aois.count; j++ )
+    {
+        aoip = aoic.aois.items[j];
+        printf( "%s:\n"
+                " aoi_visited_before_count: %d\n"
+                " dwell_time: %f\n"
+                " dwell_time_realtive: %f\n"
+                " fixation_count: %d\n"
+                " fixation_count_relative: %f\n\n", aoip->label,
+                aoip->analysis->aoi_visited_before_count,
+                aoip->analysis->dwell_time,
+                aoip->analysis->dwell_time_relative,
+                aoip->analysis->fixation_count,
+                aoip->analysis->fixation_count_relative );
+    }
+
     // cleanup
+    gac_aoi_collection_destroy( &aoic );
     gac_destroy( &h );
     gac_destroy( &h_screen );
     fclose( fp );

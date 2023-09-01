@@ -37,6 +37,11 @@ struct gac_fixation_s
 };
 
 /**
+ *
+ */
+gac_fixation_t* gac_fixation_copy( gac_fixation_t* fixation );
+
+/**
  * Allocate a new fixation structure on the heap. This structure must be
  * freed.
  *

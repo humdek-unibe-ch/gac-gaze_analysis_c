@@ -11,6 +11,18 @@
 #include <math.h>
 
 /******************************************************************************/
+gac_fixation_t* gac_fixation_copy( gac_fixation_t* fixation )
+{
+    if( fixation == NULL )
+    {
+        return NULL;
+    }
+
+    return gac_fixation_create( &fixation->screen_point, &fixation->point,
+            fixation->duration, &fixation->first_sample );
+}
+
+/******************************************************************************/
 gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
         double duration, gac_sample_t* first_sample )
 {
