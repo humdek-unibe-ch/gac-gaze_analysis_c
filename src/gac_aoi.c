@@ -480,6 +480,11 @@ void gac_aoi_collection_destroy( gac_aoi_collection_t* aoic )
         return;
     }
 
+    if( aoic->analysis != NULL )
+    {
+        gac_aoi_collection_analysis_destroy( aoic->analysis );
+    }
+
     for( i = 0; i < aoic->aois.count; i++ )
     {
         if( aoic->aois.items[i] != NULL )

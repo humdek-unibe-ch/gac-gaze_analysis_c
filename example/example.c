@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
     fprintf( fp_saccades_screen, "%s\n", saccade_header );
 
     // init aoi
+    gac_aoi_collection_init( &aoic );
     gac_aoi_init( &aoi, "aoi1" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
