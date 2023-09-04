@@ -23,6 +23,18 @@ gac_fixation_t* gac_fixation_copy( gac_fixation_t* fixation )
 }
 
 /******************************************************************************/
+bool gac_fixation_copy_to( gac_fixation_t* tgt, gac_fixation_t* src )
+{
+    if( tgt == NULL || src == NULL )
+    {
+        return false;
+    }
+
+    return gac_fixation_init( tgt, &src->screen_point, &src->point,
+            src->duration, &src->first_sample );
+}
+
+/******************************************************************************/
 gac_fixation_t* gac_fixation_create( vec2* screen_point, vec3* point,
         double duration, gac_sample_t* first_sample )
 {

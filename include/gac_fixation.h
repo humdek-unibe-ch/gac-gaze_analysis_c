@@ -37,9 +37,24 @@ struct gac_fixation_s
 };
 
 /**
+ * Create a new copy of fixation.
  *
+ * @param fixation
+ *  A pointer to the fixation to copy.
+ * @return
+ *  A pointer to a newly allocated fixation.
  */
 gac_fixation_t* gac_fixation_copy( gac_fixation_t* fixation );
+
+/**
+ * Copy a fixation structure.
+ *
+ * @param tgt
+ *  A pointer to a fixation structure to cpy to.
+ * @param src
+ *  A pointer to the fixation structure to be copied.
+ */
+bool gac_fixation_copy_to( gac_fixation_t* tgt, gac_fixation_t* src );
 
 /**
  * Allocate a new fixation structure on the heap. This structure must be

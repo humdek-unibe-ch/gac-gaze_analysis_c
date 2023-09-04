@@ -14,6 +14,9 @@ lib_LTLIBRARIES = libgac.la
 gacdir=$(includedir)
 gac_HEADERS = include/gac.h \
 			  include/gac_aoi.h \
+			  include/gac_aoi_analysis.h \
+			  include/gac_aoi_collection.h \
+			  include/gac_aoi_collection_analysis.h \
 			  include/gac_filter_fixation.h \
 			  include/gac_filter_gap.h \
 			  include/gac_filter_noise.h \
@@ -27,6 +30,9 @@ gac_HEADERS = include/gac.h \
 
 libgac_la_SOURCES = src/gac.c \
 					src/gac_aoi.c \
+					src/gac_aoi_analysis.c \
+					src/gac_aoi_collection.c \
+					src/gac_aoi_collection_analysis.c \
 					src/gac_filter_fixation.c \
 					src/gac_filter_gap.c \
 					src/gac_filter_noise.c \

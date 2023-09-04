@@ -18,6 +18,9 @@
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
 
+/** The maximal label length */
+#define GAC_SAMPLE_MAX_LABEL_LEN 100
+
 /** ::gac_sample_s */
 typedef struct gac_sample_s gac_sample_t;
 
@@ -43,7 +46,7 @@ struct gac_sample_s
     /** The time in milliseconds since the last change of label. */
     double label_onset;
     /** Arbitrary label to annotate the sample. */
-    char* label;
+    char label[GAC_SAMPLE_MAX_LABEL_LEN];
 };
 
 // SAMPLE //////////////////////////////////////////////////////////////////////

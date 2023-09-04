@@ -272,8 +272,7 @@ uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origi
                 sample->trial_onset = h->last_sample->trial_onset + time_delta;
             }
 
-            if( label != NULL && h->last_sample->label != NULL
-                    && strcmp( label, h->last_sample->label ) == 0 )
+            if( label != NULL && strcmp( label, h->last_sample->label ) == 0 )
             {
                 sample->label_onset = h->last_sample->label_onset + time_delta;
             }

@@ -9,7 +9,7 @@
  */
 
 #include "gac.h"
-#include "gac_aoi.h"
+#include "gac_aoi_collection.h"
 #include <csv.h>
 #include <string.h>
 
@@ -135,6 +135,7 @@ int main(int argc, char* argv[])
     gac_aoi_t aoi;
     gac_aoi_t* aoip;
     gac_aoi_collection_t aoic;
+    gac_aoi_collection_t aoic_screen;
     unsigned int j;
 
     void* vals[100];
@@ -193,20 +194,24 @@ int main(int argc, char* argv[])
 
     // init aoi
     gac_aoi_collection_init( &aoic );
+    gac_aoi_collection_init( &aoic_screen );
     gac_aoi_init( &aoi, "aoi1" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
     gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_collection_add( &aoic_screen, &aoi );
     gac_aoi_destroy( &aoi );
     gac_aoi_init( &aoi, "aoi2" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.5, 0.75, 0.2, 0.2 );
     gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_collection_add( &aoic_screen, &aoi );
     gac_aoi_destroy( &aoi );
     gac_aoi_init( &aoi, "aoi3" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.1, 0.3, 0.2, 0.1 );
     gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_collection_add( &aoic_screen, &aoi );
     gac_aoi_destroy( &aoi );
     /* printf( "aoi\n origin: [%f, %f]\n avg_edge_len: %f\n bounding_box: [%f, %f, %f, %f]\n points: ", */
     /*         aoi.ray_origin[0], aoi.ray_origin[1], aoi.avg_edge_len, */
@@ -261,7 +266,7 @@ int main(int argc, char* argv[])
                 atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        compute( count, &h_screen, &aoic, fp_fixations_screen,
+        compute( count, &h_screen, &aoic_screen, fp_fixations_screen,
                 fp_saccades_screen );
 
 next_loop:
@@ -272,26 +277,28 @@ next_loop:
     }
 
     gac_aoi_collection_analyse_finalise( &aoic );
+    gac_aoi_collection_analyse_finalise( &aoic_screen );
 
     printf( "aoi analysis:\n");
     for( j = 0; j < aoic.aois.count; j++ )
     {
-        aoip = aoic.aois.items[j];
+        aoip = &aoic.aois.items[j];
         printf( "%s:\n"
                 " aoi_visited_before_count: %d\n"
                 " dwell_time: %f\n"
                 " dwell_time_realtive: %f\n"
                 " fixation_count: %d\n"
                 " fixation_count_relative: %f\n\n", aoip->label,
-                aoip->analysis->aoi_visited_before_count,
-                aoip->analysis->dwell_time,
-                aoip->analysis->dwell_time_relative,
-                aoip->analysis->fixation_count,
-                aoip->analysis->fixation_count_relative );
+                aoip->analysis.aoi_visited_before_count,
+                aoip->analysis.dwell_time,
+                aoip->analysis.dwell_time_relative,
+                aoip->analysis.fixation_count,
+                aoip->analysis.fixation_count_relative );
     }
 
     // cleanup
     gac_aoi_collection_destroy( &aoic );
+    gac_aoi_collection_destroy( &aoic_screen );
     gac_destroy( &h );
     gac_destroy( &h_screen );
     fclose( fp );

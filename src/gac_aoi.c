@@ -107,7 +107,6 @@ bool gac_aoi_add_rect_res( gac_aoi_t* aoi, float x, float y, float width,
 /******************************************************************************/
 gac_aoi_t* gac_aoi_copy( gac_aoi_t* aoi )
 {
-    uint32_t i;
     gac_aoi_t* aoi_copy;
 
     if( aoi == NULL )
@@ -116,15 +115,41 @@ gac_aoi_t* gac_aoi_copy( gac_aoi_t* aoi )
     }
 
     aoi_copy = gac_aoi_create( aoi->label );
-    aoi_copy->analysis = gac_aoi_analysis_copy( aoi->analysis );
-    for( i = 0; i < aoi->points.count; i++ )
+    if( aoi_copy == NULL )
     {
-        gac_aoi_add_point( aoi_copy, aoi->points.items[i][0],
-                aoi->points.items[i][1] );
+        return NULL;
     }
-    gac_aoi_set_resolution( aoi_copy, aoi->resolution_x, aoi->resolution_y );
+
+    if( !gac_aoi_copy_to( aoi_copy, aoi ) )
+    {
+        gac_aoi_destroy( aoi_copy );
+        return NULL;
+    }
 
     return aoi_copy;
+}
+
+/******************************************************************************/
+bool gac_aoi_copy_to( gac_aoi_t* tgt, gac_aoi_t* src )
+{
+    uint32_t i;
+    bool res = true;
+
+    if( tgt == NULL || src == NULL )
+    {
+        return false;
+    }
+
+    res &= gac_aoi_init( tgt, src->label );
+    res &= gac_aoi_analysis_copy_to( &tgt->analysis, &src->analysis );
+    for( i = 0; i < src->points.count; i++ )
+    {
+        res &= gac_aoi_add_point( tgt, src->points.items[i][0],
+                src->points.items[i][1] );
+    }
+    res &= gac_aoi_set_resolution( tgt, src->resolution_x, src->resolution_y );
+
+    return res;
 }
 
 /******************************************************************************/
@@ -149,15 +174,7 @@ void gac_aoi_destroy( gac_aoi_t* aoi )
         return;
     }
 
-    if( aoi->label != NULL )
-    {
-        free( aoi->label );
-    }
-
-    if( aoi->analysis != NULL )
-    {
-        gac_aoi_analysis_destroy( aoi->analysis );
-    }
+    gac_aoi_analysis_destroy( &aoi->analysis );
 
     if( aoi->_me != NULL )
     {
@@ -240,12 +257,12 @@ bool gac_aoi_init( gac_aoi_t* aoi, const char* label )
     aoi->points.count = 0;
     aoi->avg_edge_len = 0;
     aoi->_me = NULL;
-    aoi->analysis = NULL;
-    aoi->label = NULL;
+    memset( aoi->label, '\0', sizeof( aoi->label ) );
     if( label != NULL )
     {
-        aoi->label = strdup( label );
+        strncpy( aoi->label, label, GAC_AOI_MAX_LABEL_LEN - 1 );
     }
+    gac_aoi_analysis_init( &aoi->analysis );
 
     for( i = 0; i < GAC_AOI_MAX_POINTS; i++ )
     {
@@ -346,317 +363,6 @@ bool gac_aoi_set_resolution( gac_aoi_t* aoi, float resolution_x,
 
     aoi->resolution_x = resolution_x;
     aoi->resolution_y = resolution_y;
-
-    return true;
-}
-
-/******************************************************************************/
-bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi )
-{
-    return gac_aoi_collection_assign( aoic, gac_aoi_copy( aoi ) );
-}
-
-/******************************************************************************/
-bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic )
-{
-    uint32_t i;
-    gac_aoi_t* aoi;
-    if( aoic == NULL )
-    {
-        return false;
-    }
-
-    if( aoic->analysis == NULL )
-    {
-        return false;
-    }
-
-    for( i = 0; i < aoic->aois.count; i++ )
-    {
-        aoi = aoic->aois.items[i];
-        if( aoi->analysis != NULL )
-        {
-            aoi->analysis->fixation_count_relative =
-                ( double )aoi->analysis->fixation_count /
-                    ( double )aoic->analysis->fixation_count;
-            aoi->analysis->dwell_time_relative =
-                aoi->analysis->dwell_time / aoic->analysis->dwell_time;
-        }
-    }
-
-    return true;
-}
-
-/******************************************************************************/
-bool gac_aoi_collection_analyse_fixation( gac_aoi_collection_t* aoic,
-        gac_fixation_t* fixation )
-{
-    uint32_t i;
-    gac_aoi_t* aoi;
-    if( aoic == NULL || fixation == NULL )
-    {
-        return false;
-    }
-
-    if( aoic->analysis == NULL )
-    {
-        aoic->analysis = gac_aoi_collection_analysis_create();
-    }
-    aoic->analysis->dwell_time += fixation->duration;
-
-    for( i = 0; i < aoic->aois.count; i++ )
-    {
-        aoi = aoic->aois.items[i];
-        if( gac_aoi_includes_point( aoi, fixation->screen_point[0],
-                    fixation->screen_point[1] ) )
-        {
-            if( aoi->analysis == NULL )
-            {
-                aoi->analysis = gac_aoi_analysis_create();
-                aoi->analysis->first_fixation = gac_fixation_copy( fixation );
-                aoi->analysis->aoi_visited_before_count =
-                    aoic->analysis->aoi_visited_count;
-                aoic->analysis->aoi_visited_count++;
-            }
-            aoi->analysis->fixation_count++;
-            aoi->analysis->dwell_time += fixation->duration;
-            aoic->analysis->fixation_count++;
-        }
-    }
-
-    return true;
-}
-
-/******************************************************************************/
-bool gac_aoi_collection_assign( gac_aoi_collection_t* aoic, gac_aoi_t* aoi )
-{
-    gac_aoi_t* aoi_heap;
-
-    if( aoic == NULL || aoi == NULL )
-    {
-        return false;
-    }
-
-    aoi_heap = aoi->_me;
-    if( aoi_heap == NULL )
-    {
-        aoi_heap = gac_aoi_copy( aoi );
-    }
-
-    aoic->aois.items[aoic->aois.count] = aoi_heap;
-    aoic->aois.count++;
-
-    return true;
-}
-
-/******************************************************************************/
-gac_aoi_collection_t* gac_aoi_collection_create()
-{
-    gac_aoi_collection_t* aoic = malloc( sizeof( gac_aoi_collection_t ) );
-
-    if( aoic == NULL )
-    {
-        return NULL;
-    }
-
-    if( !gac_aoi_collection_init( aoic ) )
-    {
-        gac_aoi_collection_destroy( aoic );
-        return NULL;
-    }
-
-    aoic->_me = aoic;
-
-    return aoic;
-}
-
-/******************************************************************************/
-void gac_aoi_collection_destroy( gac_aoi_collection_t* aoic )
-{
-    uint32_t i;
-
-    if( aoic == NULL )
-    {
-        return;
-    }
-
-    if( aoic->analysis != NULL )
-    {
-        gac_aoi_collection_analysis_destroy( aoic->analysis );
-    }
-
-    for( i = 0; i < aoic->aois.count; i++ )
-    {
-        if( aoic->aois.items[i] != NULL )
-        {
-            gac_aoi_destroy( aoic->aois.items[i] );
-        }
-    }
-
-    if( aoic->_me != NULL )
-    {
-        free( aoic->_me );
-    }
-}
-
-/******************************************************************************/
-bool gac_aoi_collection_init( gac_aoi_collection_t* aoic )
-{
-    uint32_t i;
-
-    if( aoic == NULL )
-    {
-        return false;
-    }
-
-    aoic->_me = NULL;
-    aoic->analysis = NULL;
-    aoic->aois.count = 0;
-    for( i = 0; i < GAC_AOI_MAX; i++ )
-    {
-        aoic->aois.items[i] = NULL;
-    }
-
-    return true;
-}
-
-/******************************************************************************/
-gac_aoi_analysis_t* gac_aoi_analysis_copy( gac_aoi_analysis_t* analysis )
-{
-    gac_aoi_analysis_t* analysis_copy;
-
-    if( analysis == NULL )
-    {
-        return NULL;
-    }
-
-    analysis_copy = gac_aoi_analysis_create();
-    analysis_copy->aoi_visited_before_count = analysis->aoi_visited_before_count;
-    analysis_copy->dwell_time = analysis->dwell_time;
-    analysis_copy->dwell_time_relative = analysis->dwell_time_relative;
-    analysis_copy->first_fixation = gac_fixation_copy( analysis->first_fixation );
-    analysis_copy->first_saccade = gac_saccade_copy( analysis->first_saccade );
-    analysis_copy->fixation_count = analysis->fixation_count;
-    analysis_copy->fixation_count_relative = analysis->fixation_count_relative;
-
-    return analysis_copy;
-}
-
-/******************************************************************************/
-gac_aoi_analysis_t* gac_aoi_analysis_create()
-{
-    gac_aoi_analysis_t* analysis = malloc(
-            sizeof( gac_aoi_analysis_t ) );
-
-    if( analysis == NULL )
-    {
-        return NULL;
-    }
-
-    if( !gac_aoi_analysis_init( analysis ) )
-    {
-        gac_aoi_analysis_destroy( analysis );
-        return NULL;
-    }
-
-    analysis->_me = analysis;
-
-    return analysis;
-}
-
-/******************************************************************************/
-void gac_aoi_analysis_destroy( gac_aoi_analysis_t* analysis )
-{
-    if( analysis == NULL )
-    {
-        return;
-    }
-
-    if( analysis->first_fixation != NULL )
-    {
-        gac_fixation_destroy( analysis->first_fixation );
-    }
-
-    if( analysis->first_saccade != NULL )
-    {
-        gac_saccade_destroy( analysis->first_saccade );
-    }
-
-    if( analysis->_me != NULL )
-    {
-        free( analysis->_me );
-    }
-}
-
-/******************************************************************************/
-bool gac_aoi_analysis_init( gac_aoi_analysis_t* analysis )
-{
-    if( analysis == NULL )
-    {
-        return false;
-    }
-
-    analysis->_me = NULL;
-    analysis->fixation_count = 0;
-    analysis->fixation_count_relative = 0;
-    analysis->aoi_visited_before_count = 0;
-    analysis->dwell_time = 0;
-    analysis->dwell_time_relative = 0;
-    analysis->first_fixation = NULL;
-    analysis->first_saccade = NULL;
-
-    return true;
-}
-
-/******************************************************************************/
-gac_aoi_collection_analysis_t* gac_aoi_collection_analysis_create()
-{
-    gac_aoi_collection_analysis_t* analysis = malloc(
-            sizeof( gac_aoi_collection_analysis_t ) );
-
-    if( analysis == NULL )
-    {
-        return NULL;
-    }
-
-    if( !gac_aoi_collection_analysis_init( analysis ) )
-    {
-        gac_aoi_collection_analysis_destroy( analysis );
-        return NULL;
-    }
-
-    analysis->_me = analysis;
-
-    return analysis;
-}
-
-/******************************************************************************/
-void gac_aoi_collection_analysis_destroy(
-        gac_aoi_collection_analysis_t* analysis )
-{
-    if( analysis == NULL )
-    {
-        return;
-    }
-
-    if( analysis->_me != NULL )
-    {
-        free( analysis->_me );
-    }
-}
-
-/******************************************************************************/
-bool gac_aoi_collection_analysis_init( gac_aoi_collection_analysis_t* analysis )
-{
-    if( analysis == NULL )
-    {
-        return false;
-    }
-
-    analysis->_me = NULL;
-    analysis->aoi_visited_count = 0;
-    analysis->dwell_time = 0;
-    analysis->fixation_count = 0;
 
     return true;
 }

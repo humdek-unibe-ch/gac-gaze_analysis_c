@@ -21,6 +21,17 @@ gac_saccade_t* gac_saccade_copy( gac_saccade_t* saccade )
 }
 
 /******************************************************************************/
+bool gac_saccade_copy_to( gac_saccade_t* tgt, gac_saccade_t* src )
+{
+    if( tgt == NULL || src == NULL )
+    {
+        return false;
+    }
+
+    return gac_saccade_init( tgt, &src->first_sample, &src->last_sample );
+}
+
+/******************************************************************************/
 gac_saccade_t* gac_saccade_create( gac_sample_t* first_sample,
         gac_sample_t* last_sample )
 {

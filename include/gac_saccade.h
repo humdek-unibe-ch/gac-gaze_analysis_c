@@ -33,9 +33,24 @@ struct gac_saccade_s
 };
 
 /**
+ * Create a new copy of saccade.
  *
+ * @param saccade
+ *  A pointer to the saccade to copy.
+ * @return
+ *  A pointer to a newly allocated saccade.
  */
 gac_saccade_t* gac_saccade_copy( gac_saccade_t* saccade );
+
+/**
+ * Copy a saccade structure.
+ *
+ * @param tgt
+ *  A pointer to a saccade structure to cpy to.
+ * @param src
+ *  A pointer to the saccade structure to be copied.
+ */
+bool gac_saccade_copy_to( gac_saccade_t* tgt, gac_saccade_t* src );
 
 /**
  * Allocate a new saccade structure on the heap. This needs to be freed.

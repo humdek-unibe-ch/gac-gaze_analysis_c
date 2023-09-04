@@ -72,11 +72,6 @@ void gac_sample_destroy( void* data )
         return;
     }
 
-    if( sample->label != NULL )
-    {
-        free( sample->label );
-    }
-
     if( sample->_me != NULL )
     {
         free( sample->_me );
@@ -87,16 +82,17 @@ void gac_sample_destroy( void* data )
 bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
         vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
-    if( sample == NULL )
+    if( sample == NULL || screen_point == NULL || origin == NULL
+            || point == NULL )
     {
         return false;
     }
 
     sample->_me = NULL;
-    sample->label = NULL;
+    memset( sample->label, '\0', sizeof( sample->label ) );
     if( label != NULL )
     {
-        sample->label = strdup( label );
+        strncpy( sample->label, label, GAC_SAMPLE_MAX_LABEL_LEN - 1 );
     }
     glm_vec2_copy( *screen_point, sample->screen_point );
     glm_vec3_copy( *origin, sample->origin );
