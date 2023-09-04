@@ -39,6 +39,10 @@ struct gac_aoi_analysis_s
      */
     uint32_t fixation_count;
     /**
+     * The number of saccades entering the AOI.
+     */
+    uint32_t enter_saccade_count;
+    /**
      * The relative number of fixations in this AOI where `1` is the number of
      * all fixations within the trial interest period. The trial interest
      * period corresponds to all samples with the same trial ID.
@@ -63,6 +67,16 @@ struct gac_aoi_analysis_s
      */
     gac_saccade_t first_saccade;
 };
+
+/**
+ * Clear an AIO analysis structure.
+ *
+ * @param analysis
+ *  A pointer to the structure to clear.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_aoi_analysis_clear( gac_aoi_analysis_t* analysis );
 
 /**
  * Create a deep copy of the AOI analysis structure.

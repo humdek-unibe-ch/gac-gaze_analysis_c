@@ -10,6 +10,23 @@
 #include <stdlib.h>
 
 /******************************************************************************/
+bool gac_aoi_collection_analysis_clear( gac_aoi_collection_analysis_t* analysis )
+{
+    if( analysis == NULL )
+    {
+        return false;
+    }
+
+    analysis->aoi_visited_count = 0;
+    analysis->dwell_time = 0;
+    analysis->fixation_count = 0;
+    analysis->finalize = false;
+    analysis->trial_id = 0;
+
+    return true;
+}
+
+/******************************************************************************/
 gac_aoi_collection_analysis_t* gac_aoi_collection_analysis_create()
 {
     gac_aoi_collection_analysis_t* analysis = malloc(
@@ -55,9 +72,5 @@ bool gac_aoi_collection_analysis_init( gac_aoi_collection_analysis_t* analysis )
     }
 
     analysis->_me = NULL;
-    analysis->aoi_visited_count = 0;
-    analysis->dwell_time = 0;
-    analysis->fixation_count = 0;
-
-    return true;
+    return gac_aoi_collection_analysis_clear( analysis );
 }

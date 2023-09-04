@@ -63,10 +63,13 @@ bool atob( const char* a )
  *  A pointer to a file handler for the fixation output.
  * @param fp_saccades
  *  A pointer to a file handler for the saccade output.
+ * @param fp_aoi
+ *  A pointer to a file handler for the aoi output.
  */
-void compute( int count, void* h, gac_aoi_collection_t* aoic, FILE* fp_fixations, FILE* fp_saccades )
+void compute( uint32_t count, void* h, gac_aoi_collection_t* aoic,
+        FILE* fp_fixations, FILE* fp_saccades, FILE* fp_aoi )
 {
-    int i;
+    uint32_t i, j;
     bool res;
     gac_fixation_t fixation;
     gac_saccade_t saccade;
@@ -76,7 +79,7 @@ void compute( int count, void* h, gac_aoi_collection_t* aoic, FILE* fp_fixations
         res = gac_sample_window_fixation_filter( h, &fixation );
         if( res == true )
         {
-            fprintf( fp_fixations, "%f, %f, %f, %d, %s, %f, %f, %f, %f, %f, %f\n",
+            fprintf( fp_fixations, "%f,%f,%f,%d,%s,%f,%f,%f,%f,%f,%f\n",
                     fixation.first_sample.timestamp,
                     fixation.first_sample.trial_onset,
                     fixation.first_sample.label_onset,
@@ -94,7 +97,7 @@ void compute( int count, void* h, gac_aoi_collection_t* aoic, FILE* fp_fixations
         res = gac_sample_window_saccade_filter( h, &saccade );
         if( res == true )
         {
-            fprintf( fp_saccades, "%f, %f, %f, %d, %s, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
+            fprintf( fp_saccades, "%f,%f,%f,%d,%s,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
                     saccade.first_sample.timestamp,
                     saccade.first_sample.trial_onset,
                     saccade.first_sample.label_onset,
@@ -111,7 +114,30 @@ void compute( int count, void* h, gac_aoi_collection_t* aoic, FILE* fp_fixations
                     saccade.last_sample.point[1],
                     saccade.last_sample.point[2],
                     saccade.last_sample.timestamp - saccade.first_sample.timestamp );
+            gac_aoi_collection_analyse_saccade( aoic, &saccade );
             gac_saccade_destroy( &saccade );
+        }
+        res = gac_aoi_collection_analyse_finalise( aoic );
+        if( res == true )
+        {
+            for( j = 0; j < aoic->aois.count; j++ )
+            {
+                fprintf( fp_aoi, "%d,%f,%f,%f,%d,%f,%f,%f,%f,%d,%s,%f\n",
+                        aoic->analysis.trial_id,
+                        aoic->aois.items[j].analysis.dwell_time,
+                        aoic->aois.items[j].analysis.dwell_time_relative,
+                        aoic->aois.items[j].analysis.first_fixation.duration,
+                        aoic->aois.items[j].analysis.aoi_visited_before_count,
+                        aoic->aois.items[j].analysis.first_saccade.first_sample.timestamp,
+                        aoic->aois.items[j].analysis.first_saccade.last_sample.timestamp,
+                        aoic->aois.items[j].analysis.first_saccade.first_sample.timestamp,
+                        aoic->aois.items[j].analysis.fixation_count_relative,
+                        aoic->aois.items[j].analysis.fixation_count,
+                        aoic->aois.items[j].label,
+                        aoic->aois.items[j].analysis.first_fixation.first_sample.trial_onset
+                    );
+            }
+            gac_aoi_collection_analyse_clear( aoic );
         }
     }
     gac_sample_window_cleanup( h );
@@ -121,22 +147,24 @@ int main(int argc, char* argv[])
 {
     gac_t h, h_screen;
     bool first = true;
-    int rc, len, count, i;
+    int rc, len, i;
+    uint32_t count;
     gac_filter_parameter_t params;
     char line[10000];
     const char* fixation_header;
     const char* saccade_header;
+    const char* aoi_header;
     struct csv_parser p;
     FILE* fp;
     FILE* fp_fixations;
     FILE* fp_saccades;
+    FILE* fp_aoi;
     FILE* fp_fixations_screen;
     FILE* fp_saccades_screen;
+    FILE* fp_aoi_screen;
     gac_aoi_t aoi;
-    gac_aoi_t* aoip;
     gac_aoi_collection_t aoic;
     gac_aoi_collection_t aoic_screen;
-    unsigned int j;
 
     void* vals[100];
     void* vals_ptr;
@@ -159,8 +187,10 @@ int main(int argc, char* argv[])
     }
     fp_fixations = fopen( "./fixations.csv", "w" );
     fp_saccades = fopen( "./saccades.csv", "w" );
+    fp_aoi = fopen( "./aoi.csv", "w" );
     fp_fixations_screen = fopen( "./fixations_screen.csv", "w" );
     fp_saccades_screen = fopen( "./saccades_screen.csv", "w" );
+    fp_aoi_screen = fopen( "./aoi_screen.csv", "w" );
 
     // set filter parameters
     params.fixation.dispersion_threshold = 0.5;
@@ -187,10 +217,16 @@ int main(int argc, char* argv[])
             "label,sx,sy,px,py,pz,duration";
     saccade_header = "timestamp,trial_onset,label_onset,trial_id,"
             "label,s1x,s1y,p1x,p1y,p1z,s2x,s2y,p2x,p2y,p2z,duration";
+    aoi_header = "trial_id,dwell_time,dwell_time_rel,first_fixation_duration,"
+            "first_fixation_visited_ia_count,first_saccade_start_time,"
+            "first_saccade_end_time,first_saccade_latency,fixation_count_rel,"
+            "fixation_count,label,picture_onset";
     fprintf( fp_fixations, "%s\n", fixation_header );
     fprintf( fp_fixations_screen, "%s\n", fixation_header );
     fprintf( fp_saccades, "%s\n", saccade_header );
     fprintf( fp_saccades_screen, "%s\n", saccade_header );
+    fprintf( fp_aoi, "%s\n", aoi_header );
+    fprintf( fp_aoi_screen, "%s\n", aoi_header );
 
     // init aoi
     gac_aoi_collection_init( &aoic );
@@ -259,7 +295,7 @@ int main(int argc, char* argv[])
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[0] ), atof( vals[1] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        compute( count, &h, &aoic, fp_fixations, fp_saccades );
+        compute( count, &h, &aoic, fp_fixations, fp_saccades, fp_aoi );
 
         // perform analysis by computing 2d data from screen coordinates
         count = gac_sample_window_update( &h_screen,
@@ -267,33 +303,13 @@ int main(int argc, char* argv[])
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
         compute( count, &h_screen, &aoic_screen, fp_fixations_screen,
-                fp_saccades_screen );
+                fp_saccades_screen, fp_aoi_screen );
 
 next_loop:
         for( i = 0; i < 100; i++ )
         {
             free( vals[i] );
         }
-    }
-
-    gac_aoi_collection_analyse_finalise( &aoic );
-    gac_aoi_collection_analyse_finalise( &aoic_screen );
-
-    printf( "aoi analysis:\n");
-    for( j = 0; j < aoic.aois.count; j++ )
-    {
-        aoip = &aoic.aois.items[j];
-        printf( "%s:\n"
-                " aoi_visited_before_count: %d\n"
-                " dwell_time: %f\n"
-                " dwell_time_realtive: %f\n"
-                " fixation_count: %d\n"
-                " fixation_count_relative: %f\n\n", aoip->label,
-                aoip->analysis.aoi_visited_before_count,
-                aoip->analysis.dwell_time,
-                aoip->analysis.dwell_time_relative,
-                aoip->analysis.fixation_count,
-                aoip->analysis.fixation_count_relative );
     }
 
     // cleanup
@@ -304,8 +320,10 @@ next_loop:
     fclose( fp );
     fclose( fp_fixations );
     fclose( fp_saccades );
+    fclose( fp_aoi );
     fclose( fp_fixations_screen );
     fclose( fp_saccades_screen );
+    fclose( fp_aoi_screen );
 
     return 0;
 }

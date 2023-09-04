@@ -27,13 +27,29 @@ struct gac_aoi_collection_analysis_s
 {
     /** Self-pointer to allocated structure for memory management. */ 
     void* _me;
+    /** A flag indicating whether the analysis must be finalized */
+    bool finalize;
     /** The total fixation count. */
     uint32_t fixation_count;
     /** The number of visited aois. */
     uint32_t aoi_visited_count;
+    /** A number distingiushing one trial from another */
+    bool trial_id;
     /** The summed duration of all fixations. */
     double dwell_time;
 };
+
+
+/**
+ * Clear the analysis structure.
+ *
+ * @param analysis
+ *  A pointer to the AOI collection analysis structure to clear.
+ * @return
+ *  True on success, false otherwise.
+ */
+bool gac_aoi_collection_analysis_clear(
+        gac_aoi_collection_analysis_t* analysis );
 
 /**
  * Allocate a new AOI collection analysis structure on the heap.

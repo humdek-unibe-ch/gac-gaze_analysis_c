@@ -23,11 +23,30 @@ bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi )
 }
 
 /******************************************************************************/
+bool gac_aoi_collection_analyse_clear( gac_aoi_collection_t* aoic )
+{
+    uint32_t i;
+
+    if( aoic == NULL )
+    {
+        return false;
+    }
+
+    gac_aoi_collection_analysis_clear( &aoic->analysis );
+    for( i = 0; i < aoic->aois.count; i++ )
+    {
+        gac_aoi_analysis_clear( &aoic->aois.items[i].analysis );
+    }
+
+    return true;
+}
+
+/******************************************************************************/
 bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic )
 {
     uint32_t i;
     gac_aoi_t* aoi;
-    if( aoic == NULL )
+    if( aoic == NULL || aoic->analysis.finalize == false )
     {
         return false;
     }
@@ -56,6 +75,7 @@ bool gac_aoi_collection_analyse_fixation( gac_aoi_collection_t* aoic,
         return false;
     }
 
+    aoic->analysis.trial_id = fixation->first_sample.trial_id;
     aoic->analysis.dwell_time += fixation->duration;
     aoic->analysis.fixation_count++;
 
@@ -74,6 +94,37 @@ bool gac_aoi_collection_analyse_fixation( gac_aoi_collection_t* aoic,
             }
             aoi->analysis.fixation_count++;
             aoi->analysis.dwell_time += fixation->duration;
+        }
+    }
+
+    return true;
+}
+
+/******************************************************************************/
+bool gac_aoi_collection_analyse_saccade( gac_aoi_collection_t* aoic,
+        gac_saccade_t* saccade )
+{
+    uint32_t i;
+    gac_aoi_t* aoi;
+    if( aoic == NULL || saccade == NULL )
+    {
+        return false;
+    }
+
+    for( i = 0; i < aoic->aois.count; i++ )
+    {
+        aoi = &aoic->aois.items[i];
+        if( !gac_aoi_includes_point( aoi, saccade->first_sample.screen_point[0],
+                    saccade->first_sample.screen_point[1] )
+                && gac_aoi_includes_point( aoi,
+                    saccade->last_sample.screen_point[0],
+                    saccade->last_sample.screen_point[1] ) )
+        {
+            if( aoi->analysis.enter_saccade_count == 0 )
+            {
+                gac_saccade_copy_to( &aoi->analysis.first_saccade, saccade );
+            }
+            aoi->analysis.enter_saccade_count++;
         }
     }
 

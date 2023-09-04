@@ -54,6 +54,16 @@ struct gac_aoi_collection_s
 bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi );
 
 /**
+ * Clear all analysis structures of al AOIS in the AOI collection.
+ *
+ * @param aoic
+ *  A pointer to the AOI collection structurre to clear.
+ * @return
+ *  True on success, false otherwise.
+ */
+bool gac_aoi_collection_analyse_clear( gac_aoi_collection_t* aoic );
+
+/**
  * Finalise the AOI analisis. This function computes the relative values in
  * each AOI structure based on the collection analysis data.
  *
@@ -63,7 +73,7 @@ bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi );
 bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic );
 
 /**
- * Add a fixation point to the AOI collection and updat ethe analysis.
+ * Add a fixation to the AOI collection and update the analysis.
  *
  * @param aoic
  *  A pointer to an AOI collection.
@@ -74,6 +84,19 @@ bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic );
  */
 bool gac_aoi_collection_analyse_fixation( gac_aoi_collection_t* aoic,
         gac_fixation_t* fixation );
+
+/**
+ * Add a saccade to the AOI collection and update the analysis.
+ *
+ * @param aoic
+ *  A pointer to an AOI collection.
+ * @param saccade
+ *  The saccade point to add.
+ * @return
+ *  True on success, false on failure.
+ */
+bool gac_aoi_collection_analyse_saccade( gac_aoi_collection_t* aoic,
+        gac_saccade_t* saccade );
 
 /**
  * Assign a new AOI to an AOI collection. This function acts similar to

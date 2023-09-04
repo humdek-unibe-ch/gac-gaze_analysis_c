@@ -4,8 +4,10 @@ doc/man
 example/example
 example/fixations.csv
 example/saccades.csv
+example/aoi.csv
 example/fixations_screen.csv
 example/saccades_screen.csv
+example/aoi_screen.csv
 
 .libs/
 libgac.la
