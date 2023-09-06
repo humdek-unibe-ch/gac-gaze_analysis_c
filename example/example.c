@@ -63,7 +63,7 @@ void write_aoi( gac_aoi_collection_analysis_result_t* result, FILE* fp_aoi )
         analysis = &result->aois.items[i].analysis;
         if( analysis->fixation_count != 0 )
         {
-            fprintf( fp_aoi, "%d,%f,%f,%f,%d,%f,%f,%f,%f,%d,%s,%f\n",
+            fprintf( fp_aoi, "%d,%f,%f,%f,%d,%f,%f,%f,%d,%f,%d,%s,%f\n",
                     result->trial_id,
                     analysis->dwell_time,
                     analysis->dwell_time_relative,
@@ -71,11 +71,12 @@ void write_aoi( gac_aoi_collection_analysis_result_t* result, FILE* fp_aoi )
                     analysis->aoi_visited_before_count,
                     analysis->first_saccade.first_sample.timestamp,
                     analysis->first_saccade.last_sample.timestamp,
-                    analysis->first_saccade.first_sample.timestamp,
+                    analysis->first_saccade.first_sample.label_onset,
+                    analysis->enter_saccade_count,
                     analysis->fixation_count_relative,
                     analysis->fixation_count,
                     result->aois.items[i].label,
-                    analysis->first_fixation.first_sample.trial_onset
+                    analysis->first_fixation.first_sample.timestamp - analysis->first_fixation.first_sample.label_onset
                 );
         }
     }
@@ -251,8 +252,8 @@ int main(int argc, char* argv[])
             "label,s1x,s1y,p1x,p1y,p1z,s2x,s2y,p2x,p2y,p2z,duration";
     aoi_header = "trial_id,dwell_time,dwell_time_rel,first_fixation_duration,"
             "first_fixation_visited_ia_count,first_saccade_start_time,"
-            "first_saccade_end_time,first_saccade_latency,fixation_count_rel,"
-            "fixation_count,label,picture_onset";
+            "first_saccade_end_time,first_saccade_latency,enter_saccade_count,"
+            "fixation_count_rel,fixation_count,label,picture_timestamp";
     fprintf( fp_fixations, "%s\n", fixation_header );
     fprintf( fp_fixations_screen, "%s\n", fixation_header );
     fprintf( fp_saccades, "%s\n", saccade_header );
