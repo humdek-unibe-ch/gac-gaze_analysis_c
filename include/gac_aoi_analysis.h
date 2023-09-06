@@ -93,7 +93,7 @@ gac_aoi_analysis_t* gac_aoi_analysis_copy( gac_aoi_analysis_t* analysis );
  *
  * @param tgt
  *  A pointer to the analysis structure to copy to.
- * @param tgt
+ * @param src
  *  A pointer to the analysis structure to be copied.
  * @return
  *  True on success, false otherwise.

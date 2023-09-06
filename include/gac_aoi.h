@@ -154,7 +154,7 @@ gac_aoi_t* gac_aoi_copy( gac_aoi_t* aoi );
  *
  * @param tgt
  *  A pointer to an AOI to copy to.
- * @param rct
+ * @param src
  *  A pointer to the AOI to be copied.
  * @return
  *  True on success, false otherwise.
