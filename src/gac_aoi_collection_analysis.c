@@ -70,5 +70,6 @@ bool gac_aoi_collection_analysis_init( gac_aoi_collection_analysis_t* analysis )
     }
 
     analysis->_me = NULL;
+    analysis->trial_id = 0;
     return gac_aoi_collection_analysis_clear( analysis );
 }
