@@ -15,12 +15,8 @@
 #ifndef GAC_AOI_COLLECTION_H
 #define GAC_AOI_COLLECTION_H
 
-#include "gac_aoi.h"
 #include "gac_aoi_collection_analysis.h"
 #include <stdint.h>
-
-/** The maximal allowed area of intersts to analyse. */
-#define GAC_AOI_MAX 100
 
 /** ::gac_aoi_collection_s */
 typedef struct gac_aoi_collection_s gac_aoi_collection_t;
@@ -69,8 +65,14 @@ bool gac_aoi_collection_analyse_clear( gac_aoi_collection_t* aoic );
  *
  * @param aoic
  *  A pointer to the AOI collection.
+ * @param analysis
+ *  A location to store the analysis result. This structure is only valid if
+ *  the function returns true.
+ * @return
+ *  True on success, false otherwise.
  */
-bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic );
+bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic,
+        gac_aoi_collection_analysis_result_t* analysis );
 
 /**
  * Add a fixation to the AOI collection and update the analysis.
@@ -79,14 +81,21 @@ bool gac_aoi_collection_analyse_finalise( gac_aoi_collection_t* aoic );
  *  A pointer to an AOI collection.
  * @param fixation
  *  The fixation point to add.
+ * @param analysis
+ *  A location to store the analysis result. This structure is only valid if
+ *  the function returns true.
  * @return
  *  True on success, false on failure.
  */
 bool gac_aoi_collection_analyse_fixation( gac_aoi_collection_t* aoic,
-        gac_fixation_t* fixation );
+        gac_fixation_t* fixation,
+        gac_aoi_collection_analysis_result_t* analysis );
 
 /**
- * Add a saccade to the AOI collection and update the analysis.
+ * Add a saccade to the AOI collection and update the analysis. Note that this
+ * only extends the AOI analysis but no AOI can happen based on saccades only.
+ * Always call this function bevore fixation analysis
+ * (see gac_aoi_collection_analyse_fixation).
  *
  * @param aoic
  *  A pointer to an AOI collection.

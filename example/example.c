@@ -51,6 +51,80 @@ bool atob( const char* a )
 }
 
 /**
+ *
+ */
+void write_aoi( gac_aoi_collection_analysis_result_t* result, FILE* fp_aoi )
+{
+    uint32_t i;
+    gac_aoi_analysis_t* analysis;
+
+    for( i = 0; i < result->aois.count; i++ )
+    {
+        analysis = &result->aois.items[i].analysis;
+        if( analysis->fixation_count != 0 )
+        {
+            fprintf( fp_aoi, "%d,%f,%f,%f,%d,%f,%f,%f,%f,%d,%s,%f\n",
+                    result->trial_id,
+                    analysis->dwell_time,
+                    analysis->dwell_time_relative,
+                    analysis->first_fixation.duration,
+                    analysis->aoi_visited_before_count,
+                    analysis->first_saccade.first_sample.timestamp,
+                    analysis->first_saccade.last_sample.timestamp,
+                    analysis->first_saccade.first_sample.timestamp,
+                    analysis->fixation_count_relative,
+                    analysis->fixation_count,
+                    result->aois.items[i].label,
+                    analysis->first_fixation.first_sample.trial_onset
+                );
+        }
+    }
+}
+
+/**
+ *
+ */
+void write_fixation( gac_fixation_t* fixation, FILE* fp_fixations )
+{
+    fprintf( fp_fixations, "%f,%f,%f,%d,%s,%f,%f,%f,%f,%f,%f\n",
+            fixation->first_sample.timestamp,
+            fixation->first_sample.trial_onset,
+            fixation->first_sample.label_onset,
+            fixation->first_sample.trial_id,
+            fixation->first_sample.label,
+            fixation->screen_point[0],
+            fixation->screen_point[1],
+            fixation->point[0],
+            fixation->point[1],
+            fixation->point[2],
+            fixation->duration );
+}
+
+/**
+ *
+ */
+void write_saccade( gac_saccade_t* saccade, FILE* fp_saccades )
+{
+    fprintf( fp_saccades, "%f,%f,%f,%d,%s,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
+            saccade->first_sample.timestamp,
+            saccade->first_sample.trial_onset,
+            saccade->first_sample.label_onset,
+            saccade->first_sample.trial_id,
+            saccade->first_sample.label,
+            saccade->first_sample.screen_point[0],
+            saccade->first_sample.screen_point[1],
+            saccade->first_sample.point[0],
+            saccade->first_sample.point[1],
+            saccade->first_sample.point[2],
+            saccade->last_sample.screen_point[0],
+            saccade->last_sample.screen_point[1],
+            saccade->last_sample.point[0],
+            saccade->last_sample.point[1],
+            saccade->last_sample.point[2],
+            saccade->last_sample.timestamp - saccade->first_sample.timestamp );
+}
+
+/**
  * Helper function to perfomr the analysis on the latest samples.
  *
  * @param count
@@ -69,75 +143,31 @@ bool atob( const char* a )
 void compute( uint32_t count, void* h, gac_aoi_collection_t* aoic,
         FILE* fp_fixations, FILE* fp_saccades, FILE* fp_aoi )
 {
-    uint32_t i, j;
+    uint32_t i;
     bool res;
     gac_fixation_t fixation;
     gac_saccade_t saccade;
+    gac_aoi_collection_analysis_result_t analysis;
 
     for( i = 0; i < count; i++ )
     {
-        res = gac_sample_window_fixation_filter( h, &fixation );
-        if( res == true )
-        {
-            fprintf( fp_fixations, "%f,%f,%f,%d,%s,%f,%f,%f,%f,%f,%f\n",
-                    fixation.first_sample.timestamp,
-                    fixation.first_sample.trial_onset,
-                    fixation.first_sample.label_onset,
-                    fixation.first_sample.trial_id,
-                    fixation.first_sample.label,
-                    fixation.screen_point[0],
-                    fixation.screen_point[1],
-                    fixation.point[0],
-                    fixation.point[1],
-                    fixation.point[2],
-                    fixation.duration );
-            gac_aoi_collection_analyse_fixation( aoic, &fixation );
-            gac_fixation_destroy( &fixation );
-        }
         res = gac_sample_window_saccade_filter( h, &saccade );
         if( res == true )
         {
-            fprintf( fp_saccades, "%f,%f,%f,%d,%s,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",
-                    saccade.first_sample.timestamp,
-                    saccade.first_sample.trial_onset,
-                    saccade.first_sample.label_onset,
-                    saccade.first_sample.trial_id,
-                    saccade.first_sample.label,
-                    saccade.first_sample.screen_point[0],
-                    saccade.first_sample.screen_point[1],
-                    saccade.first_sample.point[0],
-                    saccade.first_sample.point[1],
-                    saccade.first_sample.point[2],
-                    saccade.last_sample.screen_point[0],
-                    saccade.last_sample.screen_point[1],
-                    saccade.last_sample.point[0],
-                    saccade.last_sample.point[1],
-                    saccade.last_sample.point[2],
-                    saccade.last_sample.timestamp - saccade.first_sample.timestamp );
+            write_saccade( &saccade, fp_saccades );
             gac_aoi_collection_analyse_saccade( aoic, &saccade );
             gac_saccade_destroy( &saccade );
         }
-        res = gac_aoi_collection_analyse_finalise( aoic );
+        res = gac_sample_window_fixation_filter( h, &fixation );
         if( res == true )
         {
-            for( j = 0; j < aoic->aois.count; j++ )
+            write_fixation( &fixation, fp_fixations );
+            res = gac_aoi_collection_analyse_fixation( aoic, &fixation, &analysis );
+            if( res == true )
             {
-                fprintf( fp_aoi, "%d,%f,%f,%f,%d,%f,%f,%f,%f,%d,%s,%f\n",
-                        aoic->analysis.trial_id,
-                        aoic->aois.items[j].analysis.dwell_time,
-                        aoic->aois.items[j].analysis.dwell_time_relative,
-                        aoic->aois.items[j].analysis.first_fixation.duration,
-                        aoic->aois.items[j].analysis.aoi_visited_before_count,
-                        aoic->aois.items[j].analysis.first_saccade.first_sample.timestamp,
-                        aoic->aois.items[j].analysis.first_saccade.last_sample.timestamp,
-                        aoic->aois.items[j].analysis.first_saccade.first_sample.timestamp,
-                        aoic->aois.items[j].analysis.fixation_count_relative,
-                        aoic->aois.items[j].analysis.fixation_count,
-                        aoic->aois.items[j].label,
-                        aoic->aois.items[j].analysis.first_fixation.first_sample.trial_onset
-                    );
+                write_aoi( &analysis, fp_aoi );
             }
-            gac_aoi_collection_analyse_clear( aoic );
+            gac_fixation_destroy( &fixation );
         }
     }
     gac_sample_window_cleanup( h );
@@ -165,6 +195,8 @@ int main(int argc, char* argv[])
     gac_aoi_t aoi;
     gac_aoi_collection_t aoic;
     gac_aoi_collection_t aoic_screen;
+    bool res;
+    gac_aoi_collection_analysis_result_t analysis;
 
     void* vals[100];
     void* vals_ptr;
@@ -310,6 +342,18 @@ next_loop:
         {
             free( vals[i] );
         }
+    }
+
+    res = gac_aoi_collection_analyse_finalise( &aoic, &analysis );
+    if( res )
+    {
+        write_aoi( &analysis, fp_aoi );
+    }
+
+    res = gac_aoi_collection_analyse_finalise( &aoic_screen, &analysis );
+    if( res )
+    {
+        write_aoi( &analysis, fp_aoi_screen );
     }
 
     // cleanup

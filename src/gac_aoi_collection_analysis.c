@@ -20,8 +20,6 @@ bool gac_aoi_collection_analysis_clear( gac_aoi_collection_analysis_t* analysis 
     analysis->aoi_visited_count = 0;
     analysis->dwell_time = 0;
     analysis->fixation_count = 0;
-    analysis->finalize = false;
-    analysis->trial_id = 0;
 
     return true;
 }

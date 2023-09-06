@@ -19,6 +19,8 @@
 #include <cglm/vec2.h>
 #include <cglm/vec3.h>
 
+/** The maximal allowed area of intersts to analyse. */
+#define GAC_AOI_MAX 100
 /** The maximal allowed points definig an area of interest. */
 #define GAC_AOI_MAX_POINTS 100
 /** The maximal label length */
