@@ -16,6 +16,17 @@
 #endif
 
 /******************************************************************************/
+bool gac_add_aoi( gac_t* h, gac_aoi_t* aoi )
+{
+    if( h == NULL )
+    {
+        return false;
+    }
+
+    return gac_aoi_collection_add( &h->aoic, aoi );
+}
+
+/******************************************************************************/
 gac_t* gac_create( gac_filter_parameter_t* parameter )
 {
     gac_t* h = malloc( sizeof( gac_t ) );
@@ -43,6 +54,7 @@ void gac_destroy( gac_t* h )
     gac_filter_noise_destroy( &h->noise );
     gac_screen_destroy( h->screen );
     gac_sample_destroy( h->last_sample );
+    gac_aoi_collection_destroy( &h->aoic );
 
     if( h->_me != NULL )
     {
@@ -88,6 +100,7 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
             h->parameter.noise.mid_idx );
     gac_filter_gap_init( &h->gap, h->parameter.gap.max_gap_length,
             h->parameter.gap.sample_period );
+    gac_aoi_collection_init( &h->aoic );
 
     gac_queue_init( &h->samples, 0 );
     gac_queue_set_rm_handler( &h->samples, gac_sample_destroy );

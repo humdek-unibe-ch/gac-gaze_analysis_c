@@ -14,6 +14,7 @@
 #ifndef GAC_H
 #define GAC_H
 
+#include "gac_aoi_collection.h"
 #include "gac_filter_fixation.h"
 #include "gac_filter_gap.h"
 #include "gac_filter_noise.h"
@@ -93,9 +94,24 @@ struct gac_s
      * window is cleared.
      */
     gac_sample_t* last_sample;
+    /** The AOI collection structure to handle AOIs. */
+    gac_aoi_collection_t aoic;
 };
 
 // HANDLER /////////////////////////////////////////////////////////////////////
+
+/**
+ * Allows to add an AOI to the gaze analysis handler. This enables the AOI
+ * analysis.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param aoi
+ *  A pointer to the AOI structure to add.
+ * @return
+ *  True on success, false otherwise.
+ */
+bool gac_add_aoi( gac_t* h, gac_aoi_t* aoi );
 
 /**
  * Allocate the gaze analysis structure on the heap. This must be freed.
