@@ -1,6 +1,19 @@
 # Changelog
 
-## `v0.2.0` (latest)
+## `v0.2.1` (latest)
+
+### Improvements
+
+* Add aoic structure to gaze handler.
+
+### Bug Fixes
+
+* Fix memory leak.
+
+
+
+-------------------
+## `v0.2.0`
 
 ### New Features
 
