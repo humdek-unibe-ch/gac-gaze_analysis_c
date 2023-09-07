@@ -12,12 +12,18 @@
 /******************************************************************************/
 bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi )
 {
+    gac_aoi_t* aoi_ptr = aoi;
     if( aoic == NULL || aoi == NULL )
     {
         return false;
     }
 
-    gac_aoi_copy_to( &aoic->aois.items[aoic->aois.count], aoi );
+    if( aoi->_me == NULL )
+    {
+        gac_aoi_copy_to( &aoic->aois.items[aoic->aois.count], aoi );
+        aoi_ptr = &aoic->aois.items[aoic->aois.count];
+    }
+    aoic->aois.ptrs[aoic->aois.count] = aoi_ptr;
     aoic->aois.count++;
 
     return true;

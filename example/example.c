@@ -269,19 +269,16 @@ int main(int argc, char* argv[])
     gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
     gac_aoi_collection_add( &aoic, &aoi );
     gac_aoi_collection_add( &aoic_screen, &aoi );
-    gac_aoi_destroy( &aoi );
     gac_aoi_init( &aoi, "aoi2" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.5, 0.75, 0.2, 0.2 );
     gac_aoi_collection_add( &aoic, &aoi );
     gac_aoi_collection_add( &aoic_screen, &aoi );
-    gac_aoi_destroy( &aoi );
     gac_aoi_init( &aoi, "aoi3" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.1, 0.3, 0.2, 0.1 );
     gac_aoi_collection_add( &aoic, &aoi );
     gac_aoi_collection_add( &aoic_screen, &aoi );
-    gac_aoi_destroy( &aoi );
     /* printf( "aoi\n origin: [%f, %f]\n avg_edge_len: %f\n bounding_box: [%f, %f, %f, %f]\n points: ", */
     /*         aoi.ray_origin[0], aoi.ray_origin[1], aoi.avg_edge_len, */
     /*         aoi.bounding_box.x_min, aoi.bounding_box.x_max, */

@@ -30,6 +30,7 @@ struct gac_aoi_collection_s
     void* _me;
     /** The collection of individual AOIs. */
     struct {
+        gac_aoi_t* ptrs[GAC_AOI_MAX];
         /** The aoi list. */
         gac_aoi_t items[GAC_AOI_MAX];
         /** The number of AOIs in the list. */
@@ -40,12 +41,15 @@ struct gac_aoi_collection_s
 };
 
 /**
- * Add an AOI to an AOI collection.
+ * Add an AOI to an AOI collection. Do **not** destroy an AOI which was added
+ * to the collection. Memory management is taken care of by the collection.
  *
  * @param aoic
  *  A pointer to the AOI collection
  * @param aoi
  *  A pointer to the AOI to add.
+ * @return
+ *  True on success, false otherwise.
  */
 bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi );
 
