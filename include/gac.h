@@ -94,6 +94,10 @@ struct gac_s
      * window is cleared.
      */
     gac_sample_t* last_sample;
+    /** The timestamp of the last trial ID change. */
+    double trial_timestamp;
+    /** The timestamp of the last label change. */
+    double label_timestamp;
     /** The AOI collection structure to handle AOIs. */
     gac_aoi_collection_t aoic;
 };

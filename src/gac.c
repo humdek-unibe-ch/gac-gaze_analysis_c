@@ -73,6 +73,8 @@ bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
     h->screen = NULL;
     h->_me = NULL;
     h->last_sample = NULL;
+    h->trial_timestamp = 0;
+    h->label_timestamp = 0;
     gac_get_filter_parameter_default( &h->parameter );
 
     if( parameter != NULL )
@@ -269,29 +271,30 @@ uint32_t gac_sample_window_update_vec( gac_t* h, vec2* screen_point, vec3* origi
         vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
     uint32_t count;
-    double time_delta;
     gac_sample_t* sample;
 
     sample = gac_sample_create( screen_point, origin, point, timestamp,
             trial_id, label );
 
-    if( h->last_sample != NULL )
+    if( h->last_sample == NULL )
     {
-        time_delta = timestamp - h->last_sample->timestamp;
-        if( time_delta > 0 )
+        h->label_timestamp = sample->timestamp;
+        h->trial_timestamp = sample->timestamp;
+    }
+    else
+    {
+        if( trial_id != h->last_sample->trial_id )
         {
-            if( trial_id == h->last_sample->trial_id )
-            {
-                sample->trial_onset = h->last_sample->trial_onset + time_delta;
-            }
-
-            if( label != NULL && strcmp( label, h->last_sample->label ) == 0 )
-            {
-                sample->label_onset = h->last_sample->label_onset + time_delta;
-            }
+            h->trial_timestamp = sample->timestamp;
+        }
+        if( label != NULL && strcmp( label, h->last_sample->label ) != 0 )
+        {
+            h->label_timestamp = sample->timestamp;
         }
     }
 
+    sample->trial_onset =  sample->timestamp - h->trial_timestamp;
+    sample->label_onset =  sample->timestamp - h->label_timestamp;
     sample = gac_filter_noise( &h->noise, sample );
     count = gac_filter_gap( &h->gap, &h->samples, sample );
     h->fixation.new_samples = count;
