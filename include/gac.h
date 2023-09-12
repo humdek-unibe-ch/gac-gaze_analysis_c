@@ -138,6 +138,19 @@ gac_t* gac_create( gac_filter_parameter_t* parameter );
 void gac_destroy( gac_t* h );
 
 /**
+ * Finalise the AOI analysis.
+ *
+ * @param h
+ *  A pointer to the gaze analysis handler.
+ * @param analysis
+ *  A location to store the analysis result. This structure is only valid if
+ *  the function returns true.
+ * @return
+ *  True on success, false otherwise.
+ */
+bool gac_finalise( gac_t* h, gac_aoi_collection_analysis_result_t* analysis );
+
+/**
  * Initialise the gaze analysis structure.
  *
  * If no parameter structure is provided the following default values are set:

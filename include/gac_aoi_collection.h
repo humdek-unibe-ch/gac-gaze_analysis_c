@@ -64,7 +64,7 @@ bool gac_aoi_collection_add( gac_aoi_collection_t* aoic, gac_aoi_t* aoi );
 bool gac_aoi_collection_analyse_clear( gac_aoi_collection_t* aoic );
 
 /**
- * Finalise the AOI analisis. This function computes the relative values in
+ * Finalise the AOI analysis. This function computes the relative values in
  * each AOI structure based on the collection analysis data.
  *
  * @param aoic

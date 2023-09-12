@@ -170,8 +170,6 @@ void write_saccade( gac_saccade_t* saccade, FILE* fp_saccades )
  *  The number of new samples to process
  * @param h
  *  A pointer to the gaze analysis handler
- * @param aoi
- *  A pointer to an aoi structure.
  * @param fp_fixations
  *  A pointer to a file handler for the fixation output.
  * @param fp_saccades
@@ -179,8 +177,8 @@ void write_saccade( gac_saccade_t* saccade, FILE* fp_saccades )
  * @param fp_aoi
  *  A pointer to a file handler for the aoi output.
  */
-void compute( uint32_t count, void* h, gac_aoi_collection_t* aoic,
-        FILE* fp_fixations, FILE* fp_saccades, FILE* fp_aoi )
+void compute( uint32_t count, gac_t* h, FILE* fp_fixations, FILE* fp_saccades,
+        FILE* fp_aoi )
 {
     uint32_t i;
     bool res;
@@ -194,14 +192,15 @@ void compute( uint32_t count, void* h, gac_aoi_collection_t* aoic,
         if( res == true )
         {
             write_saccade( &saccade, fp_saccades );
-            gac_aoi_collection_analyse_saccade( aoic, &saccade );
+            gac_aoi_collection_analyse_saccade( &h->aoic, &saccade );
             gac_saccade_destroy( &saccade );
         }
         res = gac_sample_window_fixation_filter( h, &fixation );
         if( res == true )
         {
             write_fixation( &fixation, fp_fixations );
-            res = gac_aoi_collection_analyse_fixation( aoic, &fixation, &analysis );
+            res = gac_aoi_collection_analyse_fixation( &h->aoic, &fixation,
+                    &analysis );
             if( res == true )
             {
                 write_aoi( &analysis, fp_aoi );
@@ -242,8 +241,6 @@ int main( int argc, char* argv[] )
     FILE* fp_saccades_screen;
     FILE* fp_aoi_screen;
     gac_aoi_t aoi;
-    gac_aoi_collection_t aoic;
-    gac_aoi_collection_t aoic_screen;
     bool res;
     gac_aoi_collection_analysis_result_t analysis;
 
@@ -311,8 +308,6 @@ int main( int argc, char* argv[] )
     fprintf( fp_aoi_screen, "%s\n", aoi_header );
 
     // init aoi
-    gac_aoi_collection_init( &aoic );
-    gac_aoi_collection_init( &aoic_screen );
     gac_aoi_init( &aoi, "aoi0" );
     gac_aoi_add_point( &aoi, 0.5, 0.4 );
     gac_aoi_add_point( &aoi, 0.5, 0.3 );
@@ -322,23 +317,23 @@ int main( int argc, char* argv[] )
     gac_aoi_add_point( &aoi, 0.8, 0.4 );
     gac_aoi_add_point( &aoi, 0.7, 0.5 );
     gac_aoi_add_point( &aoi, 0.6, 0.5 );
-    gac_aoi_collection_add( &aoic, &aoi );
-    gac_aoi_collection_add( &aoic_screen, &aoi );
+    gac_aoi_collection_add( &h.aoic, &aoi );
+    gac_aoi_collection_add( &h_screen.aoic, &aoi );
     gac_aoi_init( &aoi, "aoi1" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
-    gac_aoi_collection_add( &aoic, &aoi );
-    gac_aoi_collection_add( &aoic_screen, &aoi );
+    gac_add_aoi( &h, &aoi );
+    gac_add_aoi( &h_screen, &aoi );
     gac_aoi_init( &aoi, "aoi2" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.5, 0.75, 0.2, 0.2 );
-    gac_aoi_collection_add( &aoic, &aoi );
-    gac_aoi_collection_add( &aoic_screen, &aoi );
+    gac_add_aoi( &h, &aoi );
+    gac_add_aoi( &h_screen, &aoi );
     gac_aoi_init( &aoi, "aoi3" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.1, 0.3, 0.2, 0.1 );
-    gac_aoi_collection_add( &aoic, &aoi );
-    gac_aoi_collection_add( &aoic_screen, &aoi );
+    gac_add_aoi( &h, &aoi );
+    gac_add_aoi( &h_screen, &aoi );
     /* printf( "aoi\n origin: [%f, %f]\n avg_edge_len: %f\n bounding_box: [%f, %f, %f, %f]\n points: ", */
     /*         aoi.ray_origin[0], aoi.ray_origin[1], aoi.avg_edge_len, */
     /*         aoi.bounding_box.x_min, aoi.bounding_box.x_max, */
@@ -385,14 +380,14 @@ int main( int argc, char* argv[] )
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[0] ), atof( vals[1] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        compute( count, &h, &aoic, fp_fixations, fp_saccades, fp_aoi );
+        compute( count, &h, fp_fixations, fp_saccades, fp_aoi );
 
         // perform analysis by computing 2d data from screen coordinates
         count = gac_sample_window_update( &h_screen,
                 atof( vals[5] ), atof( vals[6] ), atof( vals[7] ),
                 atof( vals[2] ), atof( vals[3] ), atof( vals[4] ),
                 atof( vals[8] ), atoi( vals[9] ), vals[10] );
-        compute( count, &h_screen, &aoic_screen, fp_fixations_screen,
+        compute( count, &h_screen, fp_fixations_screen,
                 fp_saccades_screen, fp_aoi_screen );
 
 next_loop:
@@ -402,21 +397,19 @@ next_loop:
         }
     }
 
-    res = gac_aoi_collection_analyse_finalise( &aoic, &analysis );
+    res = gac_finalise( &h, &analysis );
     if( res )
     {
         write_aoi( &analysis, fp_aoi );
     }
 
-    res = gac_aoi_collection_analyse_finalise( &aoic_screen, &analysis );
+    res = gac_finalise( &h_screen, &analysis );
     if( res )
     {
         write_aoi( &analysis, fp_aoi_screen );
     }
 
     // cleanup
-    gac_aoi_collection_destroy( &aoic );
-    gac_aoi_collection_destroy( &aoic_screen );
     gac_destroy( &h );
     gac_destroy( &h_screen );
     fclose( fp );

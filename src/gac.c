@@ -63,6 +63,16 @@ void gac_destroy( gac_t* h )
 }
 
 /******************************************************************************/
+bool gac_finalise( gac_t* h, gac_aoi_collection_analysis_result_t* analysis )
+{
+    if( h == NULL )
+    {
+        return false;
+    }
+    return gac_aoi_collection_analyse_finalise( &h->aoic, analysis );
+}
+
+/******************************************************************************/
 bool gac_init( gac_t* h, gac_filter_parameter_t* parameter )
 {
     if( h == NULL )
