@@ -105,6 +105,38 @@ bool gac_sample_copy_to( gac_sample_t* dest, gac_sample_t* sample );
 void gac_sample_destroy( void* sample );
 
 /**
+ * Compute the label timestamp of a sample.
+ *
+ * @param sample
+ *  A pointer to a sample.
+ * @return
+ *  The label timestamp in milliseconds.
+ */
+double gac_sample_get_label_timestamp( gac_sample_t* sample );
+
+/**
+ * Compute the sample onset in milliseconds given a refernece timestamp.
+ *
+ * @param sample
+ *  A pointer to a sample.
+ * @param ref
+ *  A refernce timestamp.
+ * @return
+ *  The sample onset in milliseconds.
+ */
+double gac_sample_get_onset( gac_sample_t* sample, double ref );
+
+/**
+ * Compute the trial timestamp of a sample.
+ *
+ * @param sample
+ *  A pointer to a sample.
+ * @return
+ *  The trial timestamp in milliseconds.
+ */
+double gac_sample_get_trial_timestamp( gac_sample_t* sample );
+
+/**
  * Initialise a sample structure.
  *
  * @param sample

@@ -79,6 +79,24 @@ void gac_sample_destroy( void* data )
 }
 
 /******************************************************************************/
+double gac_sample_get_label_timestamp( gac_sample_t* sample )
+{
+    return sample->timestamp - sample->label_onset;
+}
+
+/******************************************************************************/
+double gac_sample_get_onset( gac_sample_t* sample, double ref )
+{
+    return sample->timestamp - ref;
+}
+
+/******************************************************************************/
+double gac_sample_get_trial_timestamp( gac_sample_t* sample )
+{
+    return sample->timestamp - sample->trial_onset;
+}
+
+/******************************************************************************/
 bool gac_sample_init( gac_sample_t* sample, vec2* screen_point, vec3* origin,
         vec3* point, double timestamp, uint32_t trial_id, const char* label )
 {
