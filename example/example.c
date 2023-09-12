@@ -51,39 +51,72 @@ bool atob( const char* a )
 }
 
 /**
+ * Write AOI data to an output file.
  *
+ * @param result
+ *  The AOI analysis result to write.
+ * @param fp_aoi
+ *  The ouput file pointer.
  */
 void write_aoi( gac_aoi_collection_analysis_result_t* result, FILE* fp_aoi )
 {
     uint32_t i;
     gac_aoi_analysis_t* analysis;
+    double trial_timestamp;
+    double label_timestamp;
+    double first_saccade_start_onset;
+    double first_saccade_end_onset;
+    double first_fixation_onset;
+    double label_onset;
 
     for( i = 0; i < result->aois.count; i++ )
     {
         analysis = &result->aois.items[i].analysis;
+        trial_timestamp = gac_sample_get_trial_timestamp(
+                &analysis->first_fixation.first_sample );
+        label_timestamp = gac_sample_get_label_timestamp(
+                &analysis->first_fixation.first_sample );
+        first_saccade_start_onset = gac_sample_get_onset(
+                &analysis->first_saccade.first_sample, trial_timestamp );
+        first_saccade_end_onset = gac_sample_get_onset(
+                &analysis->first_saccade.last_sample, trial_timestamp );
+        first_fixation_onset = gac_sample_get_onset(
+                &analysis->first_fixation.first_sample, trial_timestamp );
+        label_onset = label_timestamp - trial_timestamp;
+        if( label_onset < 0 )
+        {
+            label_onset = 0;
+        }
         if( analysis->fixation_count != 0 )
         {
-            fprintf( fp_aoi, "%d,%f,%f,%f,%d,%f,%f,%f,%d,%f,%d,%s,%f\n",
+            fprintf( fp_aoi, "%d,%f,%f,%f,%f,%f,%d,%f,%f,%f,%d,%f,%d,%s,%f\n",
                     result->trial_id,
+                    trial_timestamp,
                     analysis->dwell_time,
                     analysis->dwell_time_relative,
                     analysis->first_fixation.duration,
+                    first_fixation_onset,
                     analysis->aoi_visited_before_count,
-                    analysis->first_saccade.first_sample.timestamp,
-                    analysis->first_saccade.last_sample.timestamp,
-                    analysis->first_saccade.first_sample.label_onset,
+                    first_saccade_start_onset,
+                    first_saccade_end_onset,
+                    first_saccade_start_onset - label_onset,
                     analysis->enter_saccade_count,
                     analysis->fixation_count_relative,
                     analysis->fixation_count,
                     result->aois.items[i].label,
-                    analysis->first_fixation.first_sample.timestamp - analysis->first_fixation.first_sample.label_onset
+                    label_onset
                 );
         }
     }
 }
 
 /**
+ * Write fixation data to an output file.
  *
+ * @param fixation
+ *  The fixation to write.
+ * @param fp_fixations
+ *  The ouput file pointer.
  */
 void write_fixation( gac_fixation_t* fixation, FILE* fp_fixations )
 {
@@ -102,7 +135,12 @@ void write_fixation( gac_fixation_t* fixation, FILE* fp_fixations )
 }
 
 /**
+ * Write saccade data to an output file.
  *
+ * @param saccade
+ *  The saccade to write.
+ * @param fp_saccade
+ *  The ouput file pointer.
  */
 void write_saccade( gac_saccade_t* saccade, FILE* fp_saccades )
 {
@@ -174,7 +212,17 @@ void compute( uint32_t count, void* h, gac_aoi_collection_t* aoic,
     gac_sample_window_cleanup( h );
 }
 
-int main(int argc, char* argv[])
+/**
+ * The main application entry.
+ *
+ * @param argc
+ *  The number of arguments passed to the application.
+ * @param argv
+ *  The argument list passed to the application.
+ * @return
+ *  The application exit code.
+ */
+int main( int argc, char* argv[] )
 {
     gac_t h, h_screen;
     bool first = true;
@@ -250,10 +298,11 @@ int main(int argc, char* argv[])
             "label,sx,sy,px,py,pz,duration";
     saccade_header = "timestamp,trial_onset,label_onset,trial_id,"
             "label,s1x,s1y,p1x,p1y,p1z,s2x,s2y,p2x,p2y,p2z,duration";
-    aoi_header = "trial_id,dwell_time,dwell_time_rel,first_fixation_duration,"
-            "first_fixation_visited_ia_count,first_saccade_start_time,"
-            "first_saccade_end_time,first_saccade_latency,enter_saccade_count,"
-            "fixation_count_rel,fixation_count,label,picture_timestamp";
+    aoi_header = "trial_id,trial_timestamp,dwell_time,dwell_time_rel,"
+            "first_fixation_duration,first_fixation_onset,"
+            "first_fixation_visited_ia_count,first_saccade_start_onset,"
+            "first_saccade_end_onset,first_saccade_latency,enter_saccade_count,"
+            "fixation_count_rel,fixation_count,label,label_onset";
     fprintf( fp_fixations, "%s\n", fixation_header );
     fprintf( fp_fixations_screen, "%s\n", fixation_header );
     fprintf( fp_saccades, "%s\n", saccade_header );
