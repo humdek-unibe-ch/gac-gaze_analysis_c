@@ -1,6 +1,23 @@
 # Changelog
 
-## `v0.2.1` (latest)
+## `v0.2.2` (latest)
+
+### New Features
+
+* Add helper functions to compute timestamps and onsets.
+
+### Improvements
+
+* Add non-rectangular AOI to the example.
+* Improve reported AOI timestamp information.
+
+### Bug Fixes
+
+* Fix trial ID and label onset calculations.
+
+
+-------------------
+## `v0.2.1`
 
 ### Improvements
 
@@ -9,7 +26,6 @@
 ### Bug Fixes
 
 * Fix memory leak.
-
 
 
 -------------------

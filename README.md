@@ -7,6 +7,7 @@ Features:
 - Sample gap fill-in through linear interpolation (lerp)
 - Fixation detection with I-DT algorithm
 - Saccade detection with I-VT algorithm
+- Area of interest (AOI) analysis
 
 ## Quick Start
 
@@ -17,37 +18,86 @@ gac_t h;
 gac_init( &h, NULL );
 ```
 
+To perform an AOI analysis, add some AOIs to the gaze analysis handler:
+
+```c
+gac_aoi_t aoi;
+gac_aoi_init( &aoi, "my_circular_aoi" );
+gac_aoi_add_point( &aoi, 0.5, 0.4 );
+gac_aoi_add_point( &aoi, 0.5, 0.3 );
+gac_aoi_add_point( &aoi, 0.6, 0.2 );
+gac_aoi_add_point( &aoi, 0.7, 0.2 );
+gac_aoi_add_point( &aoi, 0.8, 0.3 );
+gac_aoi_add_point( &aoi, 0.8, 0.4 );
+gac_aoi_add_point( &aoi, 0.7, 0.5 );
+gac_aoi_add_point( &aoi, 0.6, 0.5 );
+gac_add_aoi( &h, &aoi );
+
+gac_aoi_init( &aoi, "my_rectangular_aoi" );
+gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
+gac_add_aoi( &h, &aoi );
+```
+
 To parse gaze data for fixations and saccades, for each new sample do the following:
 
 ```c
-gac_sample_window_update( &h, sample.origin.x, sample.origin.y, sample.oridin.z,
-        sample.point.x, sample.point.y, sample.point.z, sample.timestamp );
+int i, count;
+bool res;
+gac_fixation_t fixation;
+gac_saccade_t saccade;
+gac_aoi_collection_analysis_result_t analysis;
 
-// check for fixation
-res = gac_sample_window_fixation_filter( &h, &fixation );
-if( res == true )
+// update the sample window with data.
+count = gac_sample_window_update( &h, sample.origin.x, sample.origin.y,
+        sample.oridin.z, sample.point.x, sample.point.y, sample.point.z,
+        sample.timestamp );
+
+// updating the sample window may add multiple new samples (due to gap
+// filtering). Hence, we need to filter for each sample added.
+for( i = 0; i < count; i++ )
 {
-    // new fixation deteced -> do something with the data
+    // check for saccade
+    res = gac_sample_window_saccade_filter( &h, &saccade );
+    if( res == true )
+    {
+        // perform AOI analysis on saccade data
+        gac_aoi_collection_analyse_saccade( &h.aoic, &saccade );
+        // saccade structures must be destroyed once they are no longer needed.
+        gac_saccade_destroy( &saccade );
+    }
 
-    // fixation structures must be destroyed once they are no longer needed.
-    gac_fixation_destroy( &fixation );
+    // check for fixation
+    res = gac_sample_window_fixation_filter( &h, &fixation );
+    if( res == true )
+    {
+        // perform AOI analysis on fixation data.
+        res = gac_aoi_collection_analyse_fixation( &h->aoic, &fixation,
+                &analysis );
+        if( res == true )
+        {
+            // An AOI analysis entry is ready, do something with the analysis
+            // data
+        }
+        // fixation structures must be destroyed once they are no longer needed.
+        gac_fixation_destroy( &fixation );
+    }
+
+    // remove samples from the sample window which are no longer used
+    gac_sample_window_cleanup( h );
 }
-
-// check for saccade
-res = gac_sample_window_saccade_filter( &h, &saccade );
-if( res == true )
-{
-    // new saccade deteced -> do something with the data
-
-    // saccade structures must be destroyed once they are no longer needed.
-    gac_saccade_destroy( &saccade );
-}
-
-// remove samples from the sample window which are no longer used
-gac_sample_window_cleanup( h );
 ```
 
-At the end, destroy the gaze analysis handler:
+After all samples were analysed, a finalization step is required to conclude
+the AOI analysis:
+```c
+bool res = gac_finalise( &h, &analysis );
+if( res )
+{
+    // An AOI analysis entry is ready, do something with the analysis data
+}
+```
+
+Finally, destroy the gaze analysis handler:
 ```c
 gac_destroy( &h );
 ```
@@ -105,6 +155,17 @@ The annotations are propagated to the fixation and saccade result structures.
 Further, each sample has two additional timestamp fields for onset information of the annotations:
  - `trial_onset`: the amount of milliseconds since the last change in the field `trial_id`.
  - `label_onset`: the amount of milliseconds since the last change in the field `label`.
+
+### Area of Interest (AOI) Analysis
+
+The area of interest (AOI) analysis is performed based on fixations.
+Saccade information can also be used to extend the analysis but fixations are always required.
+For each distinct trial ID block an analysis of each AOI is performed.
+
+To decide whether a sample point is inside an AOI a ray casting method is used where a virtual ray is drawn from an arbitrary point outside the AOI to the sample point.
+Then, every intersection with segments of the AOI contour is counted.
+If an even number of intersection is detected, the point lies outside of the AOI, otherwise the point lies inside the AOI.
+To improve performance, a coarse detection using a rectangular a bounding box is performed (if the sample point lies outside the bounding box it also lies outside the AOI).
 
 
 ## Building the library on Linux (Ubuntu)
