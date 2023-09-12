@@ -87,7 +87,12 @@ double gac_sample_get_label_timestamp( gac_sample_t* sample )
 /******************************************************************************/
 double gac_sample_get_onset( gac_sample_t* sample, double ref )
 {
-    return sample->timestamp - ref;
+    double onset = sample->timestamp - ref;
+    if( onset < 0 )
+    {
+        onset = 0;
+    }
+    return onset;
 }
 
 /******************************************************************************/
