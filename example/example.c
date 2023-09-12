@@ -264,6 +264,17 @@ int main(int argc, char* argv[])
     // init aoi
     gac_aoi_collection_init( &aoic );
     gac_aoi_collection_init( &aoic_screen );
+    gac_aoi_init( &aoi, "aoi0" );
+    gac_aoi_add_point( &aoi, 0.5, 0.4 );
+    gac_aoi_add_point( &aoi, 0.5, 0.3 );
+    gac_aoi_add_point( &aoi, 0.6, 0.2 );
+    gac_aoi_add_point( &aoi, 0.7, 0.2 );
+    gac_aoi_add_point( &aoi, 0.8, 0.3 );
+    gac_aoi_add_point( &aoi, 0.8, 0.4 );
+    gac_aoi_add_point( &aoi, 0.7, 0.5 );
+    gac_aoi_add_point( &aoi, 0.6, 0.5 );
+    gac_aoi_collection_add( &aoic, &aoi );
+    gac_aoi_collection_add( &aoic_screen, &aoi );
     gac_aoi_init( &aoi, "aoi1" );
     gac_aoi_set_resolution( &aoi, 2560, 1440 );
     gac_aoi_add_rect( &aoi, 0.3, 0.45, 0.1, 0.1 );
