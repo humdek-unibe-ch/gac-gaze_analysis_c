@@ -5,7 +5,7 @@
 # The version number of the library ($(VMAJ).$(VMIN).$(VREV))
 VMAJ = 0
 VMIN = 2
-VREV = 2
+VREV = 3
 VDEB = 1
 
 # the name of the library

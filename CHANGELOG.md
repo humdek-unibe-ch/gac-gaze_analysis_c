@@ -1,6 +1,14 @@
 # Changelog
 
-## `v0.2.2` (latest)
+## `v0.2.3` (latest)
+
+### Bug Fixes
+
+* Fix dispersion calculation.
+
+
+-------------------
+## `v0.2.2`
 
 ### New Features
 
