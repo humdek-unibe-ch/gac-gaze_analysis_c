@@ -311,6 +311,9 @@ bool gac_samples_dispersion( gac_queue_t* samples, float* dispersion,
     }
 
 success:
-    *dispersion = ( max[0] - min[0] + max[1] - min[1] + max[2] - min[2] ) / 3;
+    *dispersion = sqrt(
+            ( max[0] - min[0] ) * ( max[0] - min[0] )
+            + ( max[1] - min[1] ) * ( max[1] - min[1] )
+            + ( max[2] - min[2] ) * ( max[2] - min[2] ) );
     return true;
 }
