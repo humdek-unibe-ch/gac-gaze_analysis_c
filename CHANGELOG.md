@@ -1,6 +1,15 @@
 # Changelog
 
-## `v0.2.3` (latest)
+-------------------
+## `v0.3.0` (latest)
+
+### Changes
+
+* Change the formula to compute the dispersion (#1).
+
+
+-------------------
+## `v0.2.3`
 
 ### Bug Fixes
 
